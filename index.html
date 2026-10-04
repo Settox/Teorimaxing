@@ -392,6 +392,17 @@
   .rd-seg:hover{background:rgba(255,255,255,.05);}
   .rd-seg.done{color:var(--dim);}
   .rd-seg.cur{background:rgba(110,193,255,.15);border-color:var(--accent);color:#fff;}
+  .field input[type=number]{width:100%;background:rgba(4,6,14,.6);border:1px solid var(--line);border-radius:9px;color:#fff;padding:9px 11px;font-size:13px;outline:none;}
+  .field input[type=range]{width:100%;}
+  .ai-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;margin:4px 0;}
+  .ai-row .nm{flex:1;min-width:0;font-size:13px;}
+  .ai-row .nm small{color:var(--dim);font-size:11px;}
+  .rd-now{display:none;padding:8px 14px;font-size:13px;line-height:1.5;color:var(--text);border-top:1px solid var(--line);max-height:4.8em;overflow:hidden;}
+  .rd-seg.cut{text-decoration:line-through;opacity:.4;}
+  #readerModal.mini{background:transparent;backdrop-filter:none;pointer-events:none;align-items:flex-end;}
+  #readerModal.mini .rd-box{pointer-events:auto;width:min(760px,96vw);height:auto;max-height:none;margin-bottom:14px;}
+  #readerModal.mini .rd-list,#readerModal.mini .rd-foot{display:none;}
+  #readerModal.mini .rd-now{display:block;}
   .rd-foot{padding:7px 14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);min-height:18px;}
 .pdf-trl{position:absolute;left:0;top:0;right:0;bottom:0}.pdf-trp{position:absolute;background:#fff;color:#111;overflow:hidden;font-family:Georgia,"Times New Roman",serif;line-height:1.15;user-select:text}
 .node.msel{outline:2px solid #6ec1ff;outline-offset:3px}#selBox{position:fixed;border:1px solid #6ec1ff;background:rgba(110,193,255,.12);z-index:50;display:none;pointer-events:none}
@@ -545,21 +556,64 @@
       <div class="field"><label>Il tuo nome nel server (dal prossimo ingresso)</label><input type="text" id="setMyName" maxlength="24" spellcheck="false" placeholder="Utente"></div>
       <div class="field"><label>Anteprima del tuo cursore</label><div style="display:flex;align-items:center;gap:8px;margin:2px 0 8px"><svg width="20" height="20" viewBox="0 0 24 24"><path id="myPrevArrow" d="M4 2l16 9-7 2-3 7z"/></svg><span id="myPrevName" style="font-weight:600"></span></div><div id="mySw" style="display:flex;flex-wrap:wrap;gap:6px"></div><input type="hidden" id="setMyHue"></div>
       <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="setDbl"> Doppio clic sul vuoto crea un nodo</label>
-      <div class="set-h">Lettura ad alta voce · ElevenLabs</div>
-      <div class="field"><label>Chiave API ElevenLabs</label><input type="password" id="setElKey" placeholder="sk_…" autocomplete="off" spellcheck="false"></div>
-      <div class="field"><label>Voce (ID)</label><input type="text" id="setElVoice" spellcheck="false"><select id="setVoiceSel" style="display:none;margin-top:6px"></select></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ctl mini" id="setVoices">Carica le mie voci</button><button class="ctl mini" id="setTest">Prova la voce</button><button class="ctl mini" id="setClearCache">Svuota cache audio</button></div>
-      <div class="field"><label>Modello</label><select id="setElModel"><option value="eleven_multilingual_v2">Multilingual v2 (qualità migliore)</option><option value="eleven_turbo_v2_5">Turbo v2.5 (più veloce)</option><option value="eleven_flash_v2_5">Flash v2.5 (più economico)</option></select></div>
-      <div class="field"><label>Senza chiave: lingua della voce del browser (gratuita)</label><select id="setSpeechLang"></select></div>
-      <div class="hint">La voce ElevenLabs consuma i crediti del tuo piano (circa 1 per carattere; Flash circa la metà). Ogni frase generata viene tenuta in cache su questo dispositivo, quindi riascoltarla non costa di nuovo.</div>
+      <div class="set-h">Lettura ad alta voce</div>
+      <div class="field"><label>Servizio vocale</label><select id="setTtsProv">
+        <option value="browser">Voce del browser (gratuita)</option>
+        <option value="eleven">ElevenLabs (a pagamento, molto naturale)</option>
+        <option value="openai">OpenAI o compatibile (tts-1, Kokoro, Piper in locale…)</option>
+        <option value="google">Google Cloud Text-to-Speech (Neural2, Chirp)</option>
+        <option value="gemini">Gemini TTS (Google AI Studio)</option></select></div>
+      <div id="ttsBrowser">
+        <div class="field"><label>Lingua della voce</label><select id="setSpeechLang"></select></div>
+        <div class="field" style="margin-top:8px"><label>Voce</label><select id="setSysVoice"></select></div>
+        <div class="field" style="margin-top:8px"><label>Tono (<span id="setPitchV">1</span>)</label><input type="range" id="setSysPitch" min="0.5" max="1.5" step="0.1"></div>
+      </div>
+      <div id="ttsEleven" style="display:none">
+        <div class="field"><label>Chiave API ElevenLabs</label><input type="password" id="setElKey" placeholder="sk_…" autocomplete="off" spellcheck="false"></div>
+        <div class="field" style="margin-top:8px"><label>Voce (ID)</label><input type="text" id="setElVoice" spellcheck="false"><select id="setVoiceSel" style="display:none;margin-top:6px"></select></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="ctl mini" id="setVoices">Carica le mie voci</button></div>
+        <div class="field" style="margin-top:8px"><label>Modello</label><select id="setElModel"><option value="eleven_multilingual_v2">Multilingual v2 (qualità migliore)</option><option value="eleven_turbo_v2_5">Turbo v2.5 (più veloce)</option><option value="eleven_flash_v2_5">Flash v2.5 (più economico)</option></select></div>
+        <div class="hint">Consuma i crediti del tuo piano (circa 1 per carattere; Flash circa la metà).</div>
+      </div>
+      <div id="ttsOpenai" style="display:none">
+        <div class="field"><label>URL base (https://api.openai.com/v1, oppure il tuo server locale)</label><input type="text" id="setOaUrl" spellcheck="false"></div>
+        <div class="field" style="margin-top:8px"><label>Chiave API (vuota per server locali)</label><input type="password" id="setOaKey" autocomplete="off"></div>
+        <div class="field" style="margin-top:8px"><label>Modello</label><input type="text" id="setOaModel" spellcheck="false" placeholder="gpt-4o-mini-tts, tts-1, kokoro…"></div>
+        <div class="field" style="margin-top:8px"><label>Voce</label><input type="text" id="setOaVoice" list="oaVoices" spellcheck="false"><datalist id="oaVoices"><option value="alloy"><option value="ash"><option value="ballad"><option value="coral"><option value="echo"><option value="fable"><option value="nova"><option value="onyx"><option value="sage"><option value="shimmer"><option value="verse"></datalist></div>
+      </div>
+      <div id="ttsGoogle" style="display:none">
+        <div class="field"><label>Chiave API Google Cloud (Text-to-Speech attivato)</label><input type="password" id="setGcKey" autocomplete="off"></div>
+        <div class="field" style="margin-top:8px"><label>Voce (la lingua si ricava dal nome)</label><input type="text" id="setGcVoice" list="gcVoices" spellcheck="false"><datalist id="gcVoices"><option value="it-IT-Neural2-A"><option value="it-IT-Neural2-C"><option value="it-IT-Wavenet-A"><option value="it-IT-Chirp3-HD-Aoede"><option value="en-US-Neural2-F"><option value="en-GB-Neural2-B"><option value="fr-FR-Neural2-A"><option value="es-ES-Neural2-A"><option value="de-DE-Neural2-B"></datalist></div>
+      </div>
+      <div id="ttsGemini" style="display:none">
+        <div class="field"><label>Chiave API Gemini (vuota = usa quella del modello Gemini nei Modelli AI)</label><input type="password" id="setGmKey" autocomplete="off"></div>
+        <div class="field" style="margin-top:8px"><label>Modello</label><input type="text" id="setGmModel" spellcheck="false"></div>
+        <div class="field" style="margin-top:8px"><label>Voce</label><input type="text" id="setGmVoice" list="gmVoices" spellcheck="false"><datalist id="gmVoices"><option value="Kore"><option value="Puck"><option value="Charon"><option value="Zephyr"><option value="Aoede"><option value="Leda"><option value="Fenrir"><option value="Orus"><option value="Sulafat"><option value="Achird"></datalist></div>
+        <div class="field" style="margin-top:8px"><label>Richieste al minuto (il piano gratuito è molto basso)</label><input type="number" id="setGmRpm" min="1" max="1000"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="ctl mini" id="setTest">Prova la voce</button><button class="ctl mini" id="setClearCache">Svuota cache audio</button></div>
+      <div class="hint">Ogni frase generata con un servizio a pagamento viene tenuta in cache su questo dispositivo: riascoltarla non costa di nuovo.</div>
       <div class="set-h">Traduzione</div>
-      <div class="field"><label>Servizio</label><select id="setTrProv"><option value="browser">Traduttore del browser (Chrome, gratuito e senza limiti)</option><option value="google">Traduttore web gratuito (non ufficiale, a limite)</option><option value="libre">LibreTranslate (tuo server)</option><option value="openai">Modello AI (compatibile OpenAI)</option><option value="claude">Claude (chiave Anthropic)</option></select></div>
+      <div class="field"><label>Servizio</label><select id="setTrProv"><option value="browser">Traduttore del browser (Chrome, gratuito e senza limiti)</option><option value="google">Traduttore web gratuito (non ufficiale, a limite)</option><option value="libre">LibreTranslate (tuo server)</option><option value="ai">Modello AI (Gemini, Claude, OpenAI, Groq, Ollama…)</option></select></div>
       <div id="setLtBox" style="display:none"><div class="field"><label>URL di LibreTranslate</label><input type="text" id="setLtUrl" placeholder="https://…" spellcheck="false"></div><div class="field" style="margin-top:8px"><label>Chiave API (se richiesta)</label><input type="password" id="setLtKey" autocomplete="off"></div></div>
-      <div id="setAiBox" style="display:none"><div class="field"><label>URL base (OpenAI, OpenRouter, Groq, Gemini, Ollama…)</label><input type="text" id="setAiUrl" spellcheck="false"></div><div class="field" style="margin-top:8px"><label>Chiave API</label><input type="password" id="setAiKey" autocomplete="off"></div><div class="field" style="margin-top:8px"><label>Modello</label><input type="text" id="setAiModel" spellcheck="false"></div></div>
-      <div id="setClBox" style="display:none"><div class="field"><label>Chiave Anthropic</label><input type="password" id="setClKey" autocomplete="off" placeholder="sk-ant-…"></div><div class="field" style="margin-top:8px"><label>Modello</label><input type="text" id="setClModel" spellcheck="false"></div></div>
+      <div id="setAiBox" style="display:none">
+        <div class="hint">Puoi aggiungere più modelli. Quello <b>selezionato</b> traduce; ogni modello ha un limite di richieste al minuto con attesa automatica, così non arriva più «Too many requests».</div>
+        <div id="aiList"></div>
+        <div class="field" style="margin-top:8px"><label>Aggiungi un modello</label><select id="aiPreset"></select></div>
+        <div id="aiForm" style="display:none;border:1px solid var(--line2);border-radius:10px;padding:10px;margin-top:8px">
+          <div class="field"><label>Nome</label><input type="text" id="aiName" spellcheck="false"></div>
+          <div class="field" style="margin-top:8px"><label>Tipo</label><select id="aiKind"><option value="gemini">Google Gemini</option><option value="claude">Anthropic Claude</option><option value="openai">Compatibile OpenAI (OpenAI, Groq, OpenRouter, Ollama…)</option></select></div>
+          <div class="field" id="aiUrlF" style="margin-top:8px"><label>URL base</label><input type="text" id="aiUrl" spellcheck="false"></div>
+          <div class="field" style="margin-top:8px"><label>Chiave API</label><input type="password" id="aiKey" autocomplete="off"></div>
+          <div class="field" style="margin-top:8px"><label>Modello</label><input type="text" id="aiModel" spellcheck="false"></div>
+          <div class="field" style="margin-top:8px"><label>Richieste al minuto (abbassa se vedi errori 429)</label><input type="number" id="aiRpm" min="1" max="1000"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="ctl mini accent" id="aiSave">Salva modello</button><button class="ctl mini" id="aiTest">Prova</button><button class="ctl mini" id="aiCancel">Annulla</button></div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin:10px 0 2px"><input type="checkbox" id="setAiFb"> Se un modello è saturo passa al successivo della lista</label>
+      </div>
       <div class="field"><label>Lingua di destinazione predefinita</label><select id="setTrTarget"></select></div>
       <div class="hint" id="setMsg"></div>
-      <div class="hint" style="opacity:.6">Versione 7 · annulla, selezione multipla, mini-mappa, watch party, traduzione nel PDF</div>
+      <div class="hint" style="opacity:.6">Versione 8 · modelli AI, più voci, nodi dal lettore · annulla, selezione multipla, mini-mappa, watch party, traduzione nel PDF</div>
     </div>
     <div class="modal-foot"><button class="ctl accent" id="setSave">Salva</button></div>
   </div>
@@ -588,10 +642,16 @@
       <button class="ctl mini" id="rdNext" title="Frase successiva"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="16" y="5" width="3" height="14"/><polygon points="5 5 15 12 5 19"/></svg></button>
       <select id="rdSpeed" class="rd-sel" title="Velocità"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
       <span id="rdCount" class="rd-count"></span>
+      <select id="rdNodeN" class="rd-sel" title="Quanti brani finiscono nel nodo (fino a quello in lettura)"><option value="1">1 brano</option><option value="2">2 brani</option><option value="3">3 brani</option><option value="5">5 brani</option></select>
+      <button class="ctl mini" id="rdNode" title="Crea un nodo con il brano in lettura o con il testo selezionato (tasto N)">+ Nodo</button>
+      <button class="ctl mini" id="rdCut" title="Taglia dal testo e crea il nodo (tasto X)">✂ Taglia</button>
+      <button class="ico" id="rdUndoCut" title="Annulla l'ultimo taglio (tasto U)">↶</button>
+      <button class="ico" id="rdMini" title="Riduci a barra: ascolti mentre lavori sulla mappa">▁</button>
       <span class="spacer"></span>
-      <span id="rdVoice" class="hint"></span>
+      <select id="rdProv" class="rd-sel" title="Servizio vocale"></select><span id="rdVoice" class="hint" style="display:none"></span>
       <button class="ico" id="rdSettings" title="Impostazioni voce"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
+    <div id="rdNow" class="rd-now"></div>
     <div id="rdList" class="rd-list"></div>
     <div class="rd-foot" id="rdChars"></div>
   </div>
@@ -1015,26 +1075,20 @@ function renderTabs(){tabsEl.innerHTML="";tabsDirty=false;
     if(c&&document.activeElement!==$("connLabel"))$("connLabel").value=c.label||"";
     updateCtxBar();}
 
-function bindDrag(el,n,h){h.addEventListener("pointerdown",function(e){
-    if(e.button)return;e.preventDefault();e.stopPropagation();
-    var group=(msel[n.id]&&selIds().length>1)?selNodes().filter(function(x){return !x.locked;}):[n];
-    if(!group.some(function(x){return x.id===n.id;}))group=[n];
-    selectNode(n.id);delete disp[n.id];localDrag=n.id;
-    var p0=worldPos(e.clientX,e.clientY),ox=p0.x-n.x,oy=p0.y-n.y;
-    var starts=group.map(function(x){return{id:x.id,x:x.x,y:x.y};});
-    h.setPointerCapture(e.pointerId);
-    function mv(ev){
-      var p=worldPos(ev.clientX,ev.clientY),dx=Math.round(p.x-ox)-n.x,dy=Math.round(p.y-oy)-n.y;
-      group.forEach(function(x){
-        var st=starts.find(function(q){return q.id===x.id;});if(!st)return;
-        x.x=st.x+dx;x.y=st.y+dy;
-        var xe=nodeEls[x.id];if(xe){xe.style.left=x.x+"px";xe.style.top=x.y+"px";}
-      });
-      renderConnections();collabPush();
-    }
+function bindDrag(el,n,h){h.addEventListener("pointerdown",function(e){if(e.button)return;e.preventDefault();e.stopPropagation();
+    var wasMulti=!!msel[n.id]&&selIds().length>1;
+    if(!wasMulti){clearMsel();selectNode(n.id);}else{selectNode(n.id);}
+    delete disp[n.id];localDrag=n.id;
+    var p0=worldPos(e.clientX,e.clientY),ox=p0.x-n.x,oy=p0.y-n.y;h.setPointerCapture(e.pointerId);
+    var group=wasMulti?selNodes().filter(function(q){return !q.locked;}):[n];
+    if(!group.some(function(q){return q.id===n.id;})&&!n.locked)group.push(n);
+    var starts={};group.forEach(function(q){starts[q.id]={x:q.x,y:q.y};});
+    function mv(ev){var p=worldPos(ev.clientX,ev.clientY),nx=Math.round(p.x-ox),ny=Math.round(p.y-oy),dx=nx-n.x,dy=ny-n.y;
+      if(wasMulti){group.forEach(function(q){q.x=Math.round(starts[q.id].x+dx);q.y=Math.round(starts[q.id].y+dy);var qe=nodeEls[q.id];if(qe){qe.style.left=q.x+"px";qe.style.top=q.y+"px";}});}
+      else if(!n.locked){n.x=nx;n.y=ny;el.style.left=n.x+"px";el.style.top=n.y+"px";}
+      renderConnections();collabPush();}
     function up(){localDrag=null;h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",up);h.removeEventListener("pointercancel",up);save();}
-    h.addEventListener("pointermove",mv);h.addEventListener("pointerup",up);h.addEventListener("pointercancel",up);
-  });}
+    h.addEventListener("pointermove",mv);h.addEventListener("pointerup",up);h.addEventListener("pointercancel",up);});}
   function bindResize(el,n,h){h.addEventListener("pointerdown",function(e){if(e.button)return;e.preventDefault();e.stopPropagation();delete disp[n.id];localDrag=n.id;var sx=e.clientX,sy=e.clientY,sw=n.w,sh=n.h;h.setPointerCapture(e.pointerId);
     function mv(ev){n.w=Math.max(160,Math.round(sw+(ev.clientX-sx)/view.z));n.h=Math.max(100,Math.round(sh+(ev.clientY-sy)/view.z));el.style.width=n.w+"px";el.style.height=n.h+"px";renderConnections();collabPush();}
     function up(){localDrag=null;h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",up);h.removeEventListener("pointercancel",up);save();}
@@ -1274,17 +1328,7 @@ function getSelectedPdf(){var sel=window.getSelection();if(!sel||sel.rangeCount=
 
   /* ===== Context menu ===== */
   var ctx=$("ctx");
-  function showMenu(items,x,y){
-    ctx.innerHTML="";
-    /* Menu contestuale esclusivamente operativo: niente funzioni AI. */
-    items=(items||[]).filter(function(it){
-      if(!it||it.sep)return true;
-      var l=String(it.l||"").toLowerCase();
-      return !/(\bai\b|claude|chatgpt|gemini|openai|riassum|analizz|genera testo|spiega)/i.test(l);
-    });
-    items.forEach(function(it){if(it.sep){var d=document.createElement("div");d.className="ctx-sep";ctx.appendChild(d);return;}var d=document.createElement("div");d.className="ctx-item"+(it.danger?" danger":"");d.textContent=it.l;d.onclick=function(e){e.stopPropagation();closeMenu();it.fn();};ctx.appendChild(d);});
-    ctx.classList.add("open");
-
+  function showMenu(items,x,y){ctx.innerHTML="";items.filter(function(it){return it.sep||!(/\bai\b|claude|chatgpt|gemini|openai|riassum|spiega|domande di verifica|genera testo/i.test(String(it.l||"")));}).forEach(function(it){if(it.sep){var d=document.createElement("div");d.className="ctx-sep";ctx.appendChild(d);return;}var d=document.createElement("div");d.className="ctx-item"+(it.danger?" danger":"");d.textContent=it.l;d.onclick=function(e){e.stopPropagation();closeMenu();it.fn();};ctx.appendChild(d);});ctx.classList.add("open");
     var r=ctx.getBoundingClientRect();ctx.style.left=Math.min(x,window.innerWidth-r.width-8)+"px";ctx.style.top=Math.min(y,window.innerHeight-r.height-8)+"px";}
   function closeMenu(){ctx.classList.remove("open");}
   document.addEventListener("click",closeMenu);
@@ -1677,8 +1721,6 @@ async function joinRoom(room){
       if(m.p&&v.paused){var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});}else if(!m.p&&!v.paused)v.pause();}}
   ["play","pause","seeked"].forEach(function(ev){world.addEventListener(ev,function(e){var v=e.target,id=v&&v.dataset&&v.dataset.mediaId,w=id&&wpar[id];if(w&&w.mode==="lead")wpSend({k:"s",id:id,t:v.currentTime,p:!v.paused});},true);});
   setInterval(function(){Object.keys(wpar).forEach(function(id){var w=wpar[id];if(w.mode!=="lead")return;var v=wpVideo(id);if(v)wpSend({k:"s",id:id,t:v.currentTime,p:!v.paused});});},3000);
-  /* Una watch party remota non blocca più il video: l'utente può entrare
-     dal pulsante in basso a sinistra o dal menu contestuale. */
   world.addEventListener("contextmenu",function(e){var v=e.target;if(!v||v.tagName!=="VIDEO"||!v.dataset.mediaId)return;e.preventDefault();e.stopPropagation();var id=v.dataset.mediaId,w=wpar[id],items=[];
     if(!collab.active)items.push({l:"Entra prima in un server per la watch party",fn:function(){}});
     else if(w&&w.mode==="lead")items.push({l:"Termina watch party",fn:function(){delete wpar[id];wpSend({k:"end",id:id});toast("Watch party terminata.");wpRefresh();}});
@@ -1706,8 +1748,8 @@ async function joinRoom(room){
   $("newBtn").onclick=function(){if(!confirm("Creare un nuovo progetto vuoto? I dati attuali verranno sostituiti (esporta prima se vuoi conservarli)."))return;state=defaultState();selectedNode=null;selectedConn=null;clearMediaUrls();render();save();};
 
   /* ===== Eventi globali ===== */
-  viewport.addEventListener("dblclick",function(e){if(settings.dblNode===false||pen.on||e.target.closest("#ctxBar")||e.target.closest("g.conn")||e.target.closest("#collToggle"))return;if(e.target.closest(".node")||e.target.closest("#zoomHud"))return;var p=worldPos(e.clientX,e.clientY);addNode({x:Math.max(0,p.x-115),y:Math.max(0,p.y-40)});});
-  viewport.addEventListener("contextmenu",function(e){if(e.target.closest(".node")||e.target.closest("#zoomHud")||e.target.closest("#ctxBar"))return;e.preventDefault();e.stopPropagation();if(pen.on)return;var p=worldPos(e.clientX,e.clientY);var at={x:Math.max(0,p.x-115),y:Math.max(0,p.y-40)};showMenu([{l:"Nuovo nodo qui",fn:function(){addNode(at);}},{l:"Incolla come nodo",fn:function(){navigator.clipboard.readText().then(function(t){if(t&&t.trim())addNode({x:at.x,y:at.y,title:"Appunto",body:escapeHtml(t).replace(/\n/g,"<br>")});else toast("Appunti vuoti.");}).catch(function(){toast("Il browser non permette di leggere gli appunti.");});}},{sep:1},{l:"Adatta la vista a tutti i nodi",fn:function(){fitAll(true);}},{l:"Penna",fn:function(){setPen(true);}},{sep:1},{l:"Annulla",fn:histUndo},{l:"Ripeti",fn:histRedo},{sep:1},{l:"Nuova pagina",fn:addPage},{l:"Impostazioni…",fn:openSettings}].concat(selItems()),e.clientX,e.clientY);});
+  viewport.addEventListener("dblclick",function(e){if(settings.dblNode===false||pen.on||e.target.closest("#ctxBar")||e.target.closest("g.conn")||e.target.closest("#collToggle"))return;if(e.target.closest(".node")||e.target.closest("#zoomHud"))return;var p=worldPos(e.clientX,e.clientY);addNode({x:Math.round(p.x-115),y:Math.round(p.y-90)});});
+  viewport.addEventListener("contextmenu",function(e){if(e.target.closest(".node")||e.target.closest("#zoomHud")||e.target.closest("#ctxBar"))return;e.preventDefault();e.stopPropagation();if(pen.on)return;var p=worldPos(e.clientX,e.clientY);var at={x:Math.round(p.x-115),y:Math.round(p.y-90)};showMenu([{l:"Nuovo nodo qui",fn:function(){addNode(at);}},{l:"Incolla come nodo",fn:function(){navigator.clipboard.readText().then(function(t){if(t&&t.trim())addNode({x:at.x,y:at.y,title:"Appunto",body:escapeHtml(t).replace(/\n/g,"<br>")});else toast("Appunti vuoti.");}).catch(function(){toast("Il browser non permette di leggere gli appunti.");});}},{sep:1},{l:"Adatta la vista a tutti i nodi",fn:function(){fitAll(true);}},{l:"Penna",fn:function(){setPen(true);}},{sep:1},{l:"Annulla",fn:histUndo},{l:"Ripeti",fn:histRedo},{sep:1},{l:"Nuova pagina",fn:addPage},{l:"Impostazioni…",fn:openSettings}].concat(selItems()),e.clientX,e.clientY);});
   $("addNodeBtn").onclick=function(){addNode();};
   $("collapseAllBtn").onclick=function(){var anyOpen=state.volumes.some(function(v){return !collapsedVols[v.id];});state.volumes.forEach(function(v){if(anyOpen)collapsedVols[v.id]=1;else delete collapsedVols[v.id];});saveCollapsed();renderCollection();};
   $("addFolderBtn").onclick=addFolder;$("addVolumeBtn").onclick=function(){addVolume(null);};
@@ -1719,8 +1761,8 @@ async function joinRoom(room){
 
   viewport.addEventListener("dragover",function(e){e.preventDefault();});
   viewport.addEventListener("drop",function(e){e.preventDefault();var files=Array.prototype.slice.call(e.dataTransfer.files||[]);if(!files.length)return;var target=e.target.closest?e.target.closest(".node"):null;var p=worldPos(e.clientX,e.clientY);
-    files.forEach(function(f){if(f.type.indexOf("image")===0){if(target){insertImageBlob(target.dataset.id,f);}else{var node=addNode({x:Math.max(0,p.x-115),y:Math.max(0,p.y-40),title:"Immagine"});storeBlob(f).then(function(id){var url=URL.createObjectURL(f);mediaUrls[id]=url;var el=nodeBodyEl(node.id);if(el){var img=document.createElement("img");img.src=url;img.dataset.mediaId=id;img.setAttribute("contenteditable","false");el.appendChild(img);saveBody(node.id);}else{node.body='<img data-media-id="'+id+'" contenteditable="false">';save();}});}}
-      else if(f.type.indexOf("video")===0){var nodeId=target?target.dataset.id:null;if(!nodeId){var n2=addNode({x:Math.max(0,p.x-115),y:Math.max(0,p.y-40),title:"Video"});nodeId=n2.id;}addVideoFile(nodeId,f);}});});
+    files.forEach(function(f){if(f.type.indexOf("image")===0){if(target){insertImageBlob(target.dataset.id,f);}else{var node=addNode({x:Math.round(p.x-115),y:Math.round(p.y-90),title:"Immagine"});storeBlob(f).then(function(id){var url=URL.createObjectURL(f);mediaUrls[id]=url;var el=nodeBodyEl(node.id);if(el){var img=document.createElement("img");img.src=url;img.dataset.mediaId=id;img.setAttribute("contenteditable","false");el.appendChild(img);saveBody(node.id);}else{node.body='<img data-media-id="'+id+'" contenteditable="false">';save();}});}}
+      else if(f.type.indexOf("video")===0){var nodeId=target?target.dataset.id:null;if(!nodeId){var n2=addNode({x:Math.round(p.x-115),y:Math.round(p.y-90),title:"Video"});nodeId=n2.id;}addVideoFile(nodeId,f);}});});
 
   $("helpBtn").onclick=function(){$("helpModal").classList.add("open");};
   $("helpClose").onclick=function(){$("helpModal").classList.remove("open");};
@@ -1930,8 +1972,19 @@ async function joinRoom(room){
 
   /* --- impostazioni (solo su questo dispositivo, mai nello stato condiviso) --- */
   var SET_KEY="spazio-teorie-settings";
-  var settings={elKey:"",elVoice:"21m00Tcm4TlvDq8ikWAM",elModel:"eleven_multilingual_v2",trProvider:"google",dblNode:true,myName:"",myHue:null,aiUrl:"https://api.openai.com/v1",aiKey:"",aiModel:"gpt-4o-mini",clKey:"",clModel:"claude-haiku-4-5-20251001",ltUrl:"",ltKey:"",trTarget:"en",speechLang:"it-IT"};
+  var settings={elKey:"",elVoice:"21m00Tcm4TlvDq8ikWAM",elModel:"eleven_multilingual_v2",trProvider:"google",dblNode:true,myName:"",myHue:null,aiUrl:"https://api.openai.com/v1",aiKey:"",aiModel:"gpt-4o-mini",clKey:"",clModel:"claude-haiku-4-5-20251001",ltUrl:"",ltKey:"",trTarget:"en",speechLang:"it-IT",ttsProv:"",sysVoice:"",sysPitch:1,oaUrl:"https://api.openai.com/v1",oaKey:"",oaModel:"gpt-4o-mini-tts",oaVoice:"alloy",gcKey:"",gcVoice:"it-IT-Neural2-A",gmKey:"",gmModel:"gemini-2.5-flash-preview-tts",gmVoice:"Kore",gmRpm:3,aiProfiles:[],aiActive:"",aiFallback:true};
   try{var _s=JSON.parse(localStorage.getItem(SET_KEY)||"{}");for(var _k in _s)settings[_k]=_s[_k];if(!_s.trProvider&&"Translator" in self)settings.trProvider="browser";}catch(e){}
+  /* migrazione: vecchie impostazioni singole -> elenco di modelli AI */
+  (function(){
+    if(!Array.isArray(settings.aiProfiles))settings.aiProfiles=[];
+    if(!settings.aiProfiles.length){
+      var oa=null,cl=null;
+      if(settings.aiKey){var gem=/generativelanguage/.test(settings.aiUrl||"");oa={id:uid(),name:gem?"Gemini":"Modello AI",kind:"openai",url:settings.aiUrl||"https://api.openai.com/v1",key:settings.aiKey,model:settings.aiModel||"gpt-4o-mini",rpm:gem?6:30};settings.aiProfiles.push(oa);}
+      if(settings.clKey){cl={id:uid(),name:"Claude",kind:"claude",url:"",key:settings.clKey,model:settings.clModel||"claude-haiku-4-5-20251001",rpm:40};settings.aiProfiles.push(cl);}
+      settings.aiActive=(settings.trProvider==="claude"&&cl)?cl.id:(oa?oa.id:(cl?cl.id:""));
+    }
+    if(settings.trProvider==="openai"||settings.trProvider==="claude")settings.trProvider="ai";
+  })();
   function saveSettings(){try{localStorage.setItem(SET_KEY,JSON.stringify(settings));}catch(e){}}
   var LANGS=[["it","Italiano","it-IT"],["en","Inglese","en-US"],["fr","Francese","fr-FR"],["es","Spagnolo","es-ES"],["de","Tedesco","de-DE"],["pt","Portoghese","pt-PT"],["ru","Russo","ru-RU"],["zh-CN","Cinese (semplificato)","zh-CN"],["ja","Giapponese","ja-JP"],["ko","Coreano","ko-KR"],["ar","Arabo","ar-SA"],["hi","Hindi","hi-IN"],["nl","Olandese","nl-NL"],["pl","Polacco","pl-PL"],["tr","Turco","tr-TR"],["el","Greco","el-GR"],["la","Latino","it-IT"]];
   function langName(c){for(var i=0;i<LANGS.length;i++)if(LANGS[i][0]===c)return LANGS[i][1];return c||"";}
@@ -1946,15 +1999,15 @@ async function joinRoom(room){
     $("setLtBox").style.display=$("setTrProv").value==="libre"?"block":"none";$("setMsg").textContent="";
     fillExtra();setModal.classList.add("open");}
   $("setTrProv").addEventListener("change",function(){$("setLtBox").style.display=$("setTrProv").value==="libre"?"block":"none";});
-  function provBoxes(){var p=$("setTrProv").value;$("setAiBox").style.display=p==="openai"?"block":"none";$("setClBox").style.display=p==="claude"?"block":"none";}
+  function provBoxes(){var p=$("setTrProv").value;$("setAiBox").style.display=p==="ai"?"block":"none";}
   function paintHue(){var h=parseInt($("setMyHue").value,10);if(isNaN(h))h=hashHue(myId());var col=hueCol(h,1);$("myPrevArrow").setAttribute("fill",col);$("myPrevName").style.color=col;$("myPrevName").textContent=$("setMyName").value.trim()||MY_NAME;
     Array.prototype.forEach.call($("mySw").children,function(x){x.style.outline=(+x.dataset.h===h)?"2px solid #fff":"none";});}
   function buildSwatches(){var box=$("mySw");box.innerHTML="";for(var i=0;i<14;i++){var h=Math.round(i*360/14),sp=document.createElement("span");sp.dataset.h=h;sp.style.cssText="width:22px;height:22px;border-radius:50%;cursor:pointer;outline-offset:2px;background:"+hueCol(h,1);sp.onclick=function(){$("setMyHue").value=this.dataset.h;paintHue();};box.appendChild(sp);}$("setMyName").oninput=paintHue;}
   function applyIdentity(){if(settings.myName)MY_NAME=settings.myName;if(typeof settings.myHue==="number"&&!isNaN(settings.myHue))MY_HUE=settings.myHue;if(collab.active&&collab.send.hello){try{collab.send.hello({name:MY_NAME,joinedAt:collab.joinedAt,h:MY_HUE});}catch(e){}}updatePeers();}
   function fillExtra(){buildSwatches();$("setMyName").value=settings.myName||"";$("setMyHue").value=typeof settings.myHue==="number"?settings.myHue:hashHue(myId());$("setDbl").checked=settings.dblNode!==false;
-    $("setAiUrl").value=settings.aiUrl||"";$("setAiKey").value=settings.aiKey||"";$("setAiModel").value=settings.aiModel||"";$("setClKey").value=settings.clKey||"";$("setClModel").value=settings.clModel||"";provBoxes();paintHue();}
+    fillAiSet();fillTts();provBoxes();paintHue();}
   function readExtra(){settings.myName=$("setMyName").value.trim();var hv=parseInt($("setMyHue").value,10);settings.myHue=isNaN(hv)?null:hv;settings.dblNode=$("setDbl").checked;
-    settings.aiUrl=$("setAiUrl").value.trim();settings.aiKey=$("setAiKey").value.trim();settings.aiModel=$("setAiModel").value.trim();settings.clKey=$("setClKey").value.trim();settings.clModel=$("setClModel").value.trim();}
+    commitAi();readTts();}
   $("setTrProv").addEventListener("change",provBoxes);
   $("setClose").onclick=function(){setModal.classList.remove("open");};
   $("setSave").onclick=function(){settings.elKey=$("setElKey").value.trim();settings.elVoice=$("setElVoice").value.trim()||"21m00Tcm4TlvDq8ikWAM";settings.elModel=$("setElModel").value;
@@ -1966,12 +2019,69 @@ async function joinRoom(room){
       var j=await r.json(),sel=$("setVoiceSel");sel.innerHTML='<option value="">— scegli una voce —</option>';(j.voices||[]).forEach(function(v){var o=document.createElement("option");o.value=v.voice_id;o.textContent=v.name+(v.category?" ("+v.category+")":"");sel.appendChild(o);});
       sel.style.display="block";$("setMsg").textContent=(j.voices||[]).length+" voci trovate.";}catch(e){$("setMsg").textContent=e.message;}};
   $("setVoiceSel").addEventListener("change",function(){if($("setVoiceSel").value)$("setElVoice").value=$("setVoiceSel").value;});
-  $("setTest").onclick=async function(){var key=$("setElKey").value.trim();if(!key){$("setMsg").textContent="Inserisci la chiave API.";return;}
-    var keep={k:settings.elKey,v:settings.elVoice,m:settings.elModel};settings.elKey=key;settings.elVoice=$("setElVoice").value.trim()||settings.elVoice;settings.elModel=$("setElModel").value;
+  $("setTest").onclick=async function(){
+    var keep=JSON.stringify(settings);settings.elKey=$("setElKey").value.trim();settings.elVoice=$("setElVoice").value.trim()||settings.elVoice;settings.elModel=$("setElModel").value;readTts();
     $("setMsg").textContent="Genero una frase di prova…";
-    try{var u=await elTTS("Ciao! Questa è una prova della voce di Spazio Teorie.",null,null);var a=new Audio(u);await a.play();$("setMsg").textContent="Funziona.";}catch(e){$("setMsg").textContent=e.message||"Errore";}
-    settings.elKey=keep.k;settings.elVoice=keep.v;settings.elModel=keep.m;};
+    try{var txt="Ciao! Questa è una prova della voce di Spazio Teorie.";
+      if(settings.ttsProv==="browser"){if(!window.speechSynthesis)throw new Error("Il browser non supporta la sintesi vocale.");var u=new SpeechSynthesisUtterance(txt);u.lang=settings.speechLang||"it-IT";u.pitch=settings.sysPitch||1;var vv=pickSysVoice(u.lang);if(vv)u.voice=vv;window.speechSynthesis.cancel();window.speechSynthesis.speak(u);}
+      else{var url=await cloudTTS(txt,null,null);var au=new Audio(url);await au.play();}
+      $("setMsg").textContent="Funziona.";}catch(e){$("setMsg").textContent=e.message||"Errore";}
+    var o=JSON.parse(keep);for(var k in o)settings[k]=o[k];};
   $("setClearCache").onclick=async function(){try{var db=await openDB();await new Promise(function(res){var tx=db.transaction("tts","readwrite");tx.objectStore("tts").clear();tx.oncomplete=res;tx.onerror=res;});for(var k in ttsMem){try{URL.revokeObjectURL(ttsMem[k]);}catch(e){}}ttsMem={};$("setMsg").textContent="Cache audio svuotata.";}catch(e){$("setMsg").textContent="Impossibile svuotare la cache.";}};
+
+
+  /* --- voce: pannelli per servizio --- */
+  function ttsBoxes(){var p=$("setTtsProv").value;[["browser","ttsBrowser"],["eleven","ttsEleven"],["openai","ttsOpenai"],["google","ttsGoogle"],["gemini","ttsGemini"]].forEach(function(x){$(x[1]).style.display=p===x[0]?"block":"none";});}
+  $("setTtsProv").addEventListener("change",ttsBoxes);
+  $("setSysPitch").addEventListener("input",function(){$("setPitchV").textContent=this.value;});
+  function fillSysVoices(){var sel=$("setSysVoice");if(!sel)return;var vs=window.speechSynthesis?window.speechSynthesis.getVoices():[],cur=settings.sysVoice||"";sel.innerHTML="";
+    var o0=document.createElement("option");o0.value="";o0.textContent="Automatica (la migliore per la lingua)";sel.appendChild(o0);
+    vs.slice().sort(function(a,b){return a.lang<b.lang?-1:a.lang>b.lang?1:0;}).forEach(function(v){var o=document.createElement("option");o.value=v.voiceURI;o.textContent=v.name+" ("+v.lang+")";sel.appendChild(o);});sel.value=cur;}
+  try{if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=fillSysVoices;}catch(e){}
+  function fillTts(){$("setTtsProv").value=ttsProv();fillSysVoices();$("setSysPitch").value=settings.sysPitch||1;$("setPitchV").textContent=settings.sysPitch||1;
+    $("setOaUrl").value=settings.oaUrl||"";$("setOaKey").value=settings.oaKey||"";$("setOaModel").value=settings.oaModel||"";$("setOaVoice").value=settings.oaVoice||"";
+    $("setGcKey").value=settings.gcKey||"";$("setGcVoice").value=settings.gcVoice||"";
+    $("setGmKey").value=settings.gmKey||"";$("setGmModel").value=settings.gmModel||"";$("setGmVoice").value=settings.gmVoice||"";$("setGmRpm").value=settings.gmRpm||3;ttsBoxes();}
+  function readTts(){settings.ttsProv=$("setTtsProv").value;settings.sysVoice=$("setSysVoice").value;settings.sysPitch=parseFloat($("setSysPitch").value)||1;settings.speechLang=langBcp($("setSpeechLang").value);
+    settings.oaUrl=$("setOaUrl").value.trim();settings.oaKey=$("setOaKey").value.trim();settings.oaModel=$("setOaModel").value.trim();settings.oaVoice=$("setOaVoice").value.trim();
+    settings.gcKey=$("setGcKey").value.trim();settings.gcVoice=$("setGcVoice").value.trim();
+    settings.gmKey=$("setGmKey").value.trim();settings.gmModel=$("setGmModel").value.trim();settings.gmVoice=$("setGmVoice").value.trim();settings.gmRpm=Math.max(1,parseInt($("setGmRpm").value,10)||3);}
+
+  /* --- modelli AI: elenco modificabile --- */
+  var AI_PRESETS=[
+    {n:"Google Gemini 2.5 Flash",k:"gemini",u:"",m:"gemini-2.5-flash",r:6},
+    {n:"Google Gemini 2.5 Flash-Lite",k:"gemini",u:"",m:"gemini-2.5-flash-lite",r:10},
+    {n:"Anthropic Claude Haiku",k:"claude",u:"",m:"claude-haiku-4-5-20251001",r:40},
+    {n:"OpenAI GPT-4o mini",k:"openai",u:"https://api.openai.com/v1",m:"gpt-4o-mini",r:30},
+    {n:"Groq (Llama)",k:"openai",u:"https://api.groq.com/openai/v1",m:"llama-3.3-70b-versatile",r:20},
+    {n:"OpenRouter",k:"openai",u:"https://openrouter.ai/api/v1",m:"google/gemini-2.5-flash",r:20},
+    {n:"Mistral",k:"openai",u:"https://api.mistral.ai/v1",m:"mistral-small-latest",r:20},
+    {n:"DeepSeek",k:"openai",u:"https://api.deepseek.com/v1",m:"deepseek-chat",r:30},
+    {n:"Ollama (sul tuo computer)",k:"openai",u:"http://localhost:11434/v1",m:"llama3.1",r:600},
+    {n:"Altro (compatibile OpenAI)",k:"openai",u:"",m:"",r:30}];
+  var KIND_LBL={gemini:"Gemini",claude:"Claude",openai:"OpenAI-compatibile"};
+  var wp=[],wpActive="",wpEdit=null;
+  function aiDefaultRpm(k,u){return(k==="gemini"||/generativelanguage/.test(u||""))?6:(k==="claude"?40:(/localhost|127\.0\.0\.1/.test(u||"")?600:30));}
+  function fillAiSet(){wp=JSON.parse(JSON.stringify(settings.aiProfiles||[]));wpActive=settings.aiActive||(wp[0]&&wp[0].id)||"";wpEdit=null;$("aiForm").style.display="none";$("setAiFb").checked=settings.aiFallback!==false;
+    var s=$("aiPreset");s.innerHTML='<option value="">— scegli un modello da aggiungere —</option>';AI_PRESETS.forEach(function(p,i){var o=document.createElement("option");o.value=i;o.textContent=p.n;s.appendChild(o);});renderAiList();}
+  function commitAi(){settings.aiProfiles=wp;settings.aiActive=wpActive;settings.aiFallback=$("setAiFb").checked;aiGateT={};}
+  function renderAiList(){var box=$("aiList");box.innerHTML="";if(!wp.length){box.innerHTML='<div class="hint">Nessun modello ancora: scegline uno qui sotto.</div>';return;}
+    wp.forEach(function(p){var r=document.createElement("div");r.className="ai-row";
+      var rad=document.createElement("input");rad.type="radio";rad.name="aiAct";rad.checked=(p.id===wpActive);rad.title="Usa questo modello";rad.onchange=function(){wpActive=p.id;};
+      var nm=document.createElement("div");nm.className="nm";nm.innerHTML="<b>"+escapeHtml(p.name)+"</b><br><small>"+escapeHtml((KIND_LBL[p.kind]||p.kind)+" · "+(p.model||"?")+" · "+p.rpm+"/min"+(p.key?"":" · senza chiave"))+"</small>";
+      var ed=document.createElement("button");ed.className="ctl mini";ed.textContent="Modifica";ed.onclick=function(){openAiForm(p);};
+      var dl=document.createElement("button");dl.className="ico";dl.textContent="✕";dl.title="Elimina";dl.onclick=function(){wp=wp.filter(function(x){return x.id!==p.id;});if(wpActive===p.id)wpActive=(wp[0]&&wp[0].id)||"";if(wpEdit===p.id){wpEdit=null;$("aiForm").style.display="none";}renderAiList();};
+      r.appendChild(rad);r.appendChild(nm);r.appendChild(ed);r.appendChild(dl);box.appendChild(r);});}
+  function aiKindUi(){$("aiUrlF").style.display=$("aiKind").value==="openai"?"block":"none";}
+  $("aiKind").addEventListener("change",function(){aiKindUi();if(wpEdit==="new"&&!$("aiRpm")._touched)$("aiRpm").value=aiDefaultRpm($("aiKind").value,$("aiUrl").value);});
+  $("aiRpm").addEventListener("input",function(){this._touched=true;});
+  function openAiForm(p){wpEdit=p?p.id:"new";var f=p||{name:"",kind:"openai",url:"",key:"",model:"",rpm:30};$("aiName").value=f.name;$("aiKind").value=f.kind;$("aiUrl").value=f.url||"";$("aiKey").value=f.key||"";$("aiModel").value=f.model||"";$("aiRpm").value=f.rpm||30;$("aiRpm")._touched=!!p;aiKindUi();$("aiForm").style.display="block";}
+  $("aiPreset").addEventListener("change",function(){var i=this.value;if(i==="")return;var p=AI_PRESETS[+i];this.value="";openAiForm(null);$("aiName").value=p.n;$("aiKind").value=p.k;$("aiUrl").value=p.u;$("aiModel").value=p.m;$("aiRpm").value=p.r;aiKindUi();});
+  function readAiForm(){return{id:wpEdit&&wpEdit!=="new"?wpEdit:uid(),name:$("aiName").value.trim()||"Modello AI",kind:$("aiKind").value,url:$("aiKind").value==="openai"?$("aiUrl").value.trim():"",key:$("aiKey").value.trim(),model:$("aiModel").value.trim(),rpm:Math.max(1,parseInt($("aiRpm").value,10)||30)};}
+  $("aiSave").onclick=function(){var p=readAiForm();if(!p.model){$("setMsg").textContent="Scrivi il nome del modello.";return;}
+    var i=wp.findIndex(function(x){return x.id===p.id;});if(i>=0)wp[i]=p;else wp.push(p);if(!wpActive)wpActive=p.id;wpEdit=null;$("aiForm").style.display="none";$("setMsg").textContent="Modello salvato nell'elenco: ricorda di premere Salva in fondo.";renderAiList();};
+  $("aiCancel").onclick=function(){wpEdit=null;$("aiForm").style.display="none";};
+  $("aiTest").onclick=async function(){var p=readAiForm();$("setMsg").textContent="Provo «"+p.name+"»…";try{var o=await aiCall(p,trSys("en"),"Ciao mondo, questa è una prova.",function(){return false;});$("setMsg").textContent="Funziona: «"+String(o).trim().slice(0,80)+"»";}catch(e){$("setMsg").textContent=e.message||"Errore";}};
 
   /* --- menu "altro" nella barra --- */
   $("moreBtn").onclick=function(e){e.stopPropagation();var r=e.currentTarget.getBoundingClientRect();
@@ -2123,7 +2233,7 @@ async function joinRoom(room){
   function openTranslate(vid){var v=state.volumes.find(function(x){return x.id===vid;});if(!v)return;
     if(!(v.type==="pdf"&&v.pdf)&&!(v.text&&v.text.trim())){toast("Il volume non ha testo da tradurre.");return;}
     tr.v=v;fillLangSelect($("trLang"),settings.trTarget||"en");$("trTitle").textContent="Traduci «"+(v.name||"volume")+"»";
-    $("trProvNote").textContent=(v.type==="pdf"?"Crea un nuovo PDF tradotto, con lo stesso aspetto. ":"")+(settings.trProvider==="browser"?"Servizio: traduttore del browser (Chrome, sul tuo computer, nessun limite)":settings.trProvider==="openai"?"Servizio: modello AI ("+settings.aiModel+")":settings.trProvider==="claude"?"Servizio: Claude ("+settings.clModel+")":settings.trProvider==="libre"?"Servizio: LibreTranslate ("+(settings.ltUrl||"URL non impostato")+")":"Servizio: traduttore web gratuito (non ufficiale, può rallentare o interrompersi sui libri lunghi).");
+    $("trProvNote").textContent=(v.type==="pdf"?"Crea un nuovo PDF tradotto, con lo stesso aspetto. ":"")+(settings.trProvider==="browser"?"Servizio: traduttore del browser (Chrome, sul tuo computer, nessun limite)":settings.trProvider==="ai"?(aiProfile()?"Servizio: "+aiProfile().name+" ("+aiProfile().model+"), "+aiProfile().rpm+" richieste/min con attesa automatica":"Servizio: modello AI non ancora impostato (Impostazioni)"):settings.trProvider==="libre"?"Servizio: LibreTranslate ("+(settings.ltUrl||"URL non impostato")+")":"Servizio: traduttore web gratuito (non ufficiale, può rallentare o interrompersi sui libri lunghi).");
     $("trBar").style.width="0%";$("trInfo").textContent="";$("trGo").style.display="inline-flex";$("trGo").disabled=false;$("trStop").style.display="none";trModal.classList.add("open");}
   function closeTranslate(){if(tr.busy){if(!confirm("Interrompere la traduzione? Il testo già tradotto verrà conservato come parziale."))return;tr.abort=true;}trModal.classList.remove("open");}
   $("trClose").onclick=closeTranslate;$("trCancel").onclick=closeTranslate;$("trStop").onclick=function(){tr.abort=true;$("trInfo").textContent="Interrompo…";};
@@ -2135,7 +2245,7 @@ async function joinRoom(room){
       var r=await fetch(settings.ltUrl.replace(/\/+$/,"")+"/translate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("LibreTranslate: errore "+r.status);var j=await r.json();return j.translatedText||"";}
     if(prov==="browser"||tr.useBt)return await btTranslate(text,target);
-    if(prov==="openai"||prov==="claude")return await aiTranslate(text,target);
+    if(prov==="ai")return await aiTranslate(text,target);
     if(tr.gmode!=="get"){try{return await gtPost(text,target);}catch(e){if(e instanceof TypeError)tr.gmode="get";else throw e;}}
     return await gtGet(text,target);}
   function gtParse(data){return (data&&data[0]||[]).map(function(x){return x&&x[0]?x[0]:"";}).join("");}
@@ -2153,14 +2263,6 @@ async function joinRoom(room){
     var res=await fetch("https://translate.googleapis.com/translate_a/t",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:body});
     if(!res.ok){var e=new Error("Traduttore: errore "+res.status);e.status=res.status;throw e;}
     var j=await res.json();if(!Array.isArray(j))j=[j];return j.map(function(x){return Array.isArray(x)?x[0]:x;});}
-  async function aiTranslate(text,target){
-    var sys="Sei un traduttore letterario. Traduci il testo in "+(langName(target)||target)+" mantenendo tono, paragrafi e nomi propri. Rispondi solo con la traduzione, senza commenti.",r,j;
-    if(settings.trProvider==="claude"){if(!settings.clKey)throw new Error("Imposta la chiave Anthropic in Voce e traduzione.");
-      r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":settings.clKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:settings.clModel,max_tokens:4096,system:sys,messages:[{role:"user",content:text}]})});
-      if(!r.ok)throw new Error("Claude: errore "+r.status);j=await r.json();return (j.content||[]).map(function(x){return x.text||"";}).join("");}
-    if(!settings.aiKey&&!/localhost|127\.0\.0\.1/.test(settings.aiUrl||""))throw new Error("Imposta la chiave API in Voce e traduzione.");
-    r=await fetch((settings.aiUrl||"").replace(/\/+$/,"")+"/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+settings.aiKey},body:JSON.stringify({model:settings.aiModel,temperature:0.2,messages:[{role:"system",content:sys},{role:"user",content:text}]})});
-    if(!r.ok)throw new Error("Modello AI: errore "+r.status);j=await r.json();return (j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";}
   async function gtPost(text,target){
     var res=await fetch("https://translate.googleapis.com/translate_a/single",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:"client=gtx&sl=auto&tl="+encodeURIComponent(target)+"&dt=t&q="+encodeURIComponent(text)});
     if(!res.ok){var e=new Error("Traduttore: errore "+res.status);e.status=res.status;throw e;}
@@ -2177,7 +2279,7 @@ async function joinRoom(room){
     return out.join("\n\n");}
   async function translateRetry(text,target){var wait=1200,last=null;
     for(var a=0;a<5;a++){if(tr.abort)throw new Error("Interrotto");
-      try{return await translateChunk(text,target);}catch(e){last=e;if(e.message&&/imposta (l'URL|la chiave)/i.test(e.message))throw e;
+      try{return await translateChunk(text,target);}catch(e){last=e;if(e.final||(e.message&&/imposta (l'URL|la chiave)/i.test(e.message)))throw e;
         $("trInfo").textContent="Il servizio rallenta, riprovo ("+(a+1)+"/5)…";await new Promise(function(r){setTimeout(r,wait);});wait*=2;}}
     throw last||new Error("Traduzione non riuscita");}
   function chunkBlocks(blocks,max){var chunks=[],cur=null;
@@ -2215,27 +2317,22 @@ async function joinRoom(room){
     try{$("trInfo").textContent="Preparo il testo…";
       var blocks=await volumeBlocks(v,function(i,n){$("trInfo").textContent="Estraggo il testo dal PDF… pagina "+i+"/"+n;},function(){return tr.abort;});
       if(!blocks.length)throw new Error("Nessun testo trovato"+(v.type==="pdf"?" (il PDF potrebbe essere una scansione senza testo)":"")+".");
-      var chunks=chunkBlocks(blocks,3200);
-      var translated=new Array(chunks.length),nextChunk=0,completed=0;
-      var workers=Math.min(3,chunks.length);
+      var chunks=chunkBlocks(blocks,settings.trProvider==="ai"?6000:3200);
+      var translated=new Array(chunks.length),nextChunk=0,done=0;
+      var workerCount=Math.min(3,chunks.length);
       async function trWorker(){
-        while(true){
-          if(tr.abort)return;
-          var i=nextChunk++;
-          if(i>=chunks.length)return;
-          var c=chunks[i];
-          var t=await translateRetry(c.items.join("\n\n"),target);
-          translated[i]=t;completed++;
-          $("trInfo").textContent="Traduco… "+completed+"/"+chunks.length;
-          $("trBar").style.width=Math.round(completed/chunks.length*100)+"%";
+        while(!tr.abort){
+          var i=nextChunk++;if(i>=chunks.length)return;var c=chunks[i];
+          $("trInfo").textContent="Traduco… "+Math.min(done+1,chunks.length)+"/"+chunks.length;
+          try{translated[i]=await translateRetry(c.items.join("\n\n"),target);}
+          catch(e){throw e;}
+          done++;$("trBar").style.width=Math.round(done/chunks.length*100)+"%";
+          if(settings.trProvider!=="ai")await new Promise(function(r){setTimeout(r,settings.trProvider==="libre"?60:120);});
         }
       }
-      await Promise.all(Array.from({length:workers},function(){return trWorker();}));
-      for(var i=0;i<chunks.length;i++){
-        if(tr.abort)break;
-        var c=chunks[i],t=translated[i]||"";
-        if(c.mark)out.push("— p. "+c.pg+" —");
-        if(t)out.push(t.replace(/\r/g,"").replace(/\n{3,}/g,"\n\n").trim());
+      await Promise.all(Array.from({length:workerCount},function(){return trWorker();}));
+      if(!tr.abort){
+        translated.forEach(function(t,i){var c=chunks[i];if(c.mark)out.push("— p. "+c.pg+" —");out.push(t.replace(/\r/g,"").replace(/\n{3,}/g,"\n\n").trim());});
       }
       ok=!tr.abort;
     }catch(e){errMsg=e.message||"Errore";}
@@ -2264,6 +2361,7 @@ async function joinRoom(room){
         try{var o=await gtMulti(texts,lang);if(o.length===texts.length)out=o;}catch(e){if(a===1&&"Translator" in self){tr.useBt=true;toast("Servizio web saturo: passo al traduttore del browser.");break;}}}
       if(out){await sleep(250+Math.random()*350);return out;}}
     if(prov==="browser"||tr.useBt||prov==="google"){out=[];for(var i=0;i<texts.length;i++){if(tr.abort)throw new Error("Interrotto");out.push(await translateRetry(texts[i],lang));}return out;}
+    if(prov==="ai")return await aiTranslateList(texts,lang);
     var joined=await translateRetry(texts.join("\n\n"),lang);out=joined.split(/\n{2,}/);
     if(out.length!==texts.length){out=[];for(var k=0;k<texts.length;k++)out.push(await translateRetry(texts[k],lang));}
     return out;}
@@ -2302,37 +2400,193 @@ async function joinRoom(room){
   /* ================= LETTURA AD ALTA VOCE ================= */
   var ttsMem={};
   async function sha1hex(s){try{var b=await crypto.subtle.digest("SHA-1",new TextEncoder().encode(s));return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2);}).join("");}catch(e){return "h"+hashStr(s)+"-"+s.length+"-"+hashStr(s.split("").reverse().join(""));}}
-  async function elTTS(text,prev,next){
-    var key=await sha1hex(settings.elVoice+"|"+settings.elModel+"|"+text);
-    if(ttsMem[key])return ttsMem[key];
-    try{var rec=await idbGet("tts",key);if(rec&&rec.blob){ttsMem[key]=URL.createObjectURL(rec.blob);return ttsMem[key];}}catch(e){}
-    /* In una stanza condivisa, prima cerchiamo l'audio già generato dagli altri. */
-    if(activeRoom&&serverReady){
-      try{
-        var remote=await downloadRoomBlob(key,"tts","audio/mpeg");
-        if(remote){
-          await idbPut("tts",key,{blob:remote,ts:Date.now()});
-          ttsMem[key]=URL.createObjectURL(remote);
-          return ttsMem[key];
-        }
-      }catch(e){console.warn("Cache TTS remota non disponibile",e);}
-    }
+  /* ===== livello comune per i modelli AI: limite al minuto, attesa su 429, riserva ===== */
+  var aiGateT={};
+  async function waitMs(ms,label,cancel,el){var end=Date.now()+ms,first=true;el=el||($("trModal").classList.contains("open")?$("trInfo"):null);
+    for(;;){if(cancel&&cancel())throw new Error("Interrotto");var left=end-Date.now();if(left<=0)return;
+      var msg=label+" "+Math.ceil(left/1000)+" s…";if(el)el.textContent=msg;else if(first)toast(msg);first=false;await sleep(Math.min(250,left));}}
+  async function aiGate(p,cancel,el){var gap=60000/Math.max(0.2,p.rpm||30)*(p._slow||1),now=Date.now(),t=Math.max(now,aiGateT[p.id]||0);aiGateT[p.id]=t+gap;if(t>now)await waitMs(t-now,"Attendo il limite di richieste",cancel,el);}
+  function retryMsOf(res,t){var ms=0,h=res.headers&&res.headers.get&&res.headers.get("retry-after");
+    if(h){var s=parseFloat(h);ms=isNaN(s)?Math.max(0,Date.parse(h)-Date.now()):s*1000;}
+    var m=t.match(/"retryDelay"\s*:\s*"([\d.]+)s"/)||t.match(/retry in ([\d.]+)\s*s/i);if(m)ms=Math.max(ms,parseFloat(m[1])*1000);
+    return Math.min(ms,180000);}
+  async function httpErr(name,res){var t="";try{t=await res.text();}catch(e){}var msg="";
+    try{var j=JSON.parse(t),er=j.error||(Array.isArray(j)&&j[0]&&j[0].error)||j;msg=(er&&(er.message||er.status))||"";}catch(e){msg=t.slice(0,160);}
+    var er2=new Error(name+": errore "+res.status+(msg?" — "+String(msg).split("\n")[0].slice(0,170):""));
+    er2.status=res.status;er2.retryMs=retryMsOf(res,t);er2.daily=(res.status===429&&/PerDay|per day|daily/i.test(t));return er2;}
+  function trSys(target){return "Sei un traduttore letterario. Traduci il testo in "+(langName(target)||target)+" mantenendo tono, paragrafi e nomi propri. Se nel testo trovi marcatori come [[1]], [[2]], conservali identici all'inizio di ciascun paragrafo. Rispondi solo con la traduzione, senza commenti.";}
+  function aiProfile(){var l=settings.aiProfiles||[];return l.filter(function(x){return x.id===settings.aiActive;})[0]||l[0]||null;}
+  function aiChain(){var l=settings.aiProfiles||[],a=aiProfile();if(!a)return[];var out=[a];if(settings.aiFallback!==false)l.forEach(function(x){if(x!==a)out.push(x);});return out.filter(function(x){return !x._dead;});}
+  /* una singola richiesta a un modello (nessun tentativo qui) */
+  async function aiCall(p,sys,text,cancel){
+    await aiGate(p,cancel);
+    var r,j;
+    if(p.kind==="claude"){if(!p.key)throw fatalErr("Imposta la chiave Anthropic per «"+p.name+"».");
+      r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":p.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:p.model,max_tokens:8192,system:sys,messages:[{role:"user",content:text}]})});
+      if(!r.ok)throw await httpErr("Claude",r);j=await r.json();return(j.content||[]).map(function(x){return x.text||"";}).join("");}
+    if(p.kind==="gemini"){if(!p.key)throw fatalErr("Imposta la chiave Gemini per «"+p.name+"».");
+      var gc={temperature:0.2,maxOutputTokens:8192};if(/2\.5/.test(p.model)&&/flash/.test(p.model))gc.thinkingConfig={thinkingBudget:0};
+      var body={systemInstruction:{parts:[{text:sys}]},contents:[{role:"user",parts:[{text:text}]}],generationConfig:gc,
+        safetySettings:["HARM_CATEGORY_HARASSMENT","HARM_CATEGORY_HATE_SPEECH","HARM_CATEGORY_SEXUALLY_EXPLICIT","HARM_CATEGORY_DANGEROUS_CONTENT"].map(function(c){return{category:c,threshold:"BLOCK_NONE"};})};
+      r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(p.model)+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":p.key},body:JSON.stringify(body)});
+      if(!r.ok)throw await httpErr("Gemini",r);j=await r.json();
+      var parts=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[],out=parts.map(function(x){return x.text||"";}).join("");
+      if(!out){var why=(j.promptFeedback&&j.promptFeedback.blockReason)||(j.candidates&&j.candidates[0]&&j.candidates[0].finishReason)||"risposta vuota";throw fatalErr("Gemini non ha restituito testo ("+why+").");}
+      return out;}
+    var base=(p.url||"").replace(/\/+$/,"");if(!base)throw fatalErr("Imposta l'URL base per «"+p.name+"».");
+    if(!p.key&&!/localhost|127\.0\.0\.1/.test(base))throw fatalErr("Imposta la chiave API per «"+p.name+"».");
+    var h={"Content-Type":"application/json"};if(p.key)h.Authorization="Bearer "+p.key;
+    r=await fetch(base+"/chat/completions",{method:"POST",headers:h,body:JSON.stringify({model:p.model,temperature:0.2,messages:[{role:"system",content:sys},{role:"user",content:text}]})});
+    if(!r.ok)throw await httpErr(p.name,r);j=await r.json();return(j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content)||"";}
+  function fatalErr(m){var e=new Error(m);e.noRetry=true;return e;}
+  /* un modello, con tentativi: su 429/5xx aspetta quanto chiede il servizio */
+  async function aiTryProfile(p,sys,text,cancel){
+    for(var a=0;a<7;a++){
+      if(cancel&&cancel())throw new Error("Interrotto");
+      var wait=0;
+      try{return await aiCall(p,sys,text,cancel);}
+      catch(e){
+        if(e.message==="Interrotto"||e.noRetry)throw e;
+        if(e.daily){p._dead=true;var d=new Error("Quota giornaliera esaurita su «"+p.name+"». Riprova domani, cambia modello o attiva la fatturazione del servizio.");d.daily=true;throw d;}
+        if(e instanceof TypeError){if(a>=2){var n=new Error("Rete o permessi (CORS) bloccano la richiesta a «"+p.name+"».");n.noRetry=true;throw n;}wait=2000*(a+1);}
+        else if(e.status===429||e.status>=500){p._slow=Math.min(4,(p._slow||1)*1.35);wait=(e.retryMs||Math.min(90000,4000*Math.pow(2,a)))*(1+Math.random()*0.15)+400;aiGateT[p.id]=Date.now()+wait;}
+        else throw e;
+        if(a===6)throw e;
+        await waitMs(wait,"«"+p.name+"» ha raggiunto il limite: riprovo tra",cancel);}}}
+  /* tutta la catena: modello attivo, poi i successivi se sono saturi */
+  async function aiRun(sys,text,cancel){
+    var chain=aiChain();
+    if(!chain.length){var e0=new Error("Nessun modello AI disponibile: aggiungine uno in Impostazioni (oppure la quota giornaliera è esaurita).");e0.final=true;throw e0;}
+    var last=null;
+    for(var ci=0;ci<chain.length;ci++){var p=chain[ci];
+      try{return await aiTryProfile(p,sys,text,cancel);}
+      catch(e){last=e;if(e.message==="Interrotto")break;if(ci<chain.length-1)toast("«"+p.name+"» non disponibile: passo a «"+chain[ci+1].name+"».");}}
+    last.final=true;throw last;}
+  async function aiTranslate(text,target){return aiRun(trSys(target),text,function(){return tr.abort;});}
+  async function aiTranslateList(texts,target){
+    var joined=texts.map(function(t,i){return "[["+(i+1)+"]] "+t;}).join("\n\n"),outp=await aiTranslate(joined,target);
+    var parts=outp.split(/\[\[(\d+)\]\]/),map={};for(var i=1;i<parts.length;i+=2)map[+parts[i]]=(parts[i+1]||"").trim();
+    var res=[],ok=true;for(var k=1;k<=texts.length;k++){if(map[k]==null||map[k]===""){ok=false;break;}res.push(map[k]);}
+    if(ok)return res;
+    res=[];for(var q=0;q<texts.length;q++)res.push(await aiTranslate(texts[q],target));return res;}
+  /* azioni AI sui nodi */
+  async function aiNodeAction(n,kind){
+    if(!aiProfile()){toast("Aggiungi prima un modello AI nelle impostazioni.");openSettings();return;}
+    var txt=plainText(n.body||"").trim();if(!txt){toast("Il nodo è vuoto.");return;}
+    var S={sum:["Riassunto","Riassumi il testo in italiano in modo chiaro e fedele, in poche frasi. Rispondi solo con il riassunto."],
+      exp:["Spiegazione","Spiega il testo in italiano in modo semplice, come a uno studente curioso, con un esempio se utile. Rispondi solo con la spiegazione."],
+      ask:["Domande","Scrivi in italiano 5 domande di verifica sul testo, numerate, senza risposte."],
+      tr:["Traduzione","Traduci il testo in "+langName(settings.trTarget||"en")+" mantenendo tono e nomi propri. Rispondi solo con la traduzione."]}[kind];
+    toast("Il modello sta lavorando…");
+    try{var out=await aiRun(S[1],txt,function(){return false;});
+      var nn=addNode({x:n.x+n.w+50,y:n.y,title:S[0],body:escapeHtml(out.trim()).replace(/\n/g,"<br>"),source:"AI · "+aiProfile().name});
+      addConnection(n.id,nn.id,currentColor);toast(S[0]+" creato");}
+    catch(e){toast(e.message||"Errore del modello AI");}}
+
+  /* ===== lettura: più servizi vocali ===== */
+  function ttsProv(){var p=settings.ttsProv;if(p)return p;return settings.elKey?"eleven":"browser";}
+  async function ttsEleven(text,prev,next){
     var body={text:text,model_id:settings.elModel,voice_settings:{stability:0.5,similarity_boost:0.75}};if(prev)body.previous_text=prev.slice(-300);if(next)body.next_text=next.slice(0,300);
+    if(!settings.elKey)throw new Error("Imposta la chiave ElevenLabs in Impostazioni.");
     var res=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(settings.elVoice)+"?output_format=mp3_44100_64",{method:"POST",headers:{"xi-api-key":settings.elKey,"Content-Type":"application/json","Accept":"audio/mpeg"},body:JSON.stringify(body)});
     if(!res.ok){var msg="";try{var j=await res.json();var dt=j&&j.detail;msg=typeof dt==="string"?dt:(dt&&(dt.message||dt.status))||"";}catch(e){}
       var er=new Error(res.status===401?"Chiave ElevenLabs non valida.":res.status===429?"Troppe richieste o crediti ElevenLabs esauriti.":("ElevenLabs: errore "+res.status+(msg?" — "+msg:"")));er.status=res.status;throw er;}
-    var blob=await res.blob();
-    try{await idbPut("tts",key,{blob:blob,ts:Date.now()});}catch(e){}
-    /* Il file viene pubblicato nella stanza: le richieste successive lo riusano. */
-    if(activeRoom&&serverReady)uploadRoomBlob(key,blob,"tts");
-    ttsMem[key]=URL.createObjectURL(blob);return ttsMem[key];}
+    return await res.blob();}
+  async function ttsOpenAI(text){
+    var base=(settings.oaUrl||"").replace(/\/+$/,"");if(!base)throw new Error("Imposta l'URL del servizio vocale in Impostazioni.");
+    if(!settings.oaKey&&!/localhost|127\.0\.0\.1/.test(base))throw new Error("Imposta la chiave API del servizio vocale.");
+    var h={"Content-Type":"application/json"};if(settings.oaKey)h.Authorization="Bearer "+settings.oaKey;
+    var res=await fetch(base+"/audio/speech",{method:"POST",headers:h,body:JSON.stringify({model:settings.oaModel,voice:settings.oaVoice,input:text,response_format:"mp3"})});
+    if(!res.ok)throw await httpErr("Voce",res);return await res.blob();}
+  async function ttsGoogle(text){
+    if(!settings.gcKey)throw new Error("Imposta la chiave Google Cloud in Impostazioni.");
+    var vn=settings.gcVoice||"it-IT-Neural2-A",lc=(vn.match(/^[a-z]{2,3}-[A-Z]{2}/)||["it-IT"])[0];
+    var res=await fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key="+encodeURIComponent(settings.gcKey),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:{text:text},voice:{languageCode:lc,name:vn},audioConfig:{audioEncoding:"MP3"}})});
+    if(!res.ok)throw await httpErr("Google TTS",res);var j=await res.json();if(!j.audioContent)throw new Error("Google TTS: risposta vuota.");
+    return base64ToBlob("data:audio/mpeg;base64,"+j.audioContent);}
+  function pcmToWav(b64,rate){var bin=atob(b64),n=bin.length,buf=new ArrayBuffer(44+n),dv=new DataView(buf);
+    function w(o,s){for(var i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i));}
+    w(0,"RIFF");dv.setUint32(4,36+n,true);w(8,"WAVEfmt ");dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);dv.setUint32(24,rate,true);dv.setUint32(28,rate*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);w(36,"data");dv.setUint32(40,n,true);
+    var u=new Uint8Array(buf,44);for(var i=0;i<n;i++)u[i]=bin.charCodeAt(i);return new Blob([buf],{type:"audio/wav"});}
+  async function ttsGemini(text){
+    var key=settings.gmKey||((settings.aiProfiles||[]).filter(function(x){return x.kind==="gemini"&&x.key;})[0]||{}).key;if(!key)throw new Error("Imposta la chiave Gemini in Impostazioni.");
+    var res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(settings.gmModel||"gemini-2.5-flash-preview-tts")+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},
+      body:JSON.stringify({contents:[{parts:[{text:text}]}],generationConfig:{responseModalities:["AUDIO"],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:settings.gmVoice||"Kore"}}}}})});
+    if(!res.ok)throw await httpErr("Gemini voce",res);var j=await res.json(),pt=(j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts||[]).filter(function(x){return x.inlineData;})[0];
+    if(!pt)throw new Error("Gemini non ha restituito audio (modello o voce non validi?).");
+    var m=String(pt.inlineData.mimeType||"").match(/rate=(\d+)/);return pcmToWav(pt.inlineData.data,m?+m[1]:24000);}
+  async function ttsRetry(fn,gateP,cancel){
+    for(var a=0;a<4;a++){var wait=0;
+      try{if(gateP)await aiGate(gateP,cancel,$("rdChars"));return await fn();}
+      catch(e){if(e.message==="Interrotto")throw e;
+        if(e instanceof TypeError&&a<2)wait=1500;
+        else if((e.status===429||e.status>=500)&&!e.daily)wait=Math.min(60000,e.retryMs||4000*Math.pow(2,a));
+        else throw e;
+        if(a===3)throw e;await waitMs(wait,"Servizio vocale occupato, riprovo tra",cancel,$("rdChars"));}}}
+  var ttsInFlight={};
+  async function cloudTTS(text,prev,next){
+    var pv=ttsProv(),sig;
+    if(pv==="eleven")sig=pv+"|"+settings.elVoice+"|"+settings.elModel+"|"+text;
+    else if(pv==="openai")sig=pv+"|"+settings.oaUrl+"|"+settings.oaModel+"|"+settings.oaVoice+"|"+text;
+    else if(pv==="google")sig=pv+"|"+settings.gcVoice+"|"+text;
+    else sig=pv+"|"+settings.gmModel+"|"+settings.gmVoice+"|"+text;
+    var key=await sha1hex(sig);
+    if(ttsMem[key])return ttsMem[key];
+    if(ttsInFlight[key])return await ttsInFlight[key];
+
+    ttsInFlight[key]=(async function(){
+      try{
+        /* 1. Cache locale: se esiste, non si chiama mai il servizio AI/TTS. */
+        try{
+          var rec=await idbGet("tts",key);
+          if(rec&&rec.blob){
+            ttsMem[key]=URL.createObjectURL(rec.blob);
+            return ttsMem[key];
+          }
+        }catch(e){}
+
+        /* 2. Cache condivisa della stanza: un audio già generato viene riutilizzato
+              da tutti i partecipanti, indipendentemente dal provider usato sul client. */
+        if(activeRoom&&serverReady&&supabaseClient){
+          try{
+            var shared=await downloadRoomBlob(key,"tts","audio/mpeg");
+            if(shared){
+              try{await idbPut("tts",key,{blob:shared,ts:Date.now(),shared:true});}catch(e){}
+              ttsMem[key]=URL.createObjectURL(shared);
+              return ttsMem[key];
+            }
+          }catch(e){}
+        }
+
+        /* 3. Nessun file: generazione una sola volta per questa richiesta/client. */
+        var tk=rd.token,cancel=function(){return rd.token!==tk;},blob;
+        if(pv==="eleven")blob=await ttsEleven(text,prev,next);
+        else if(pv==="openai")blob=await ttsRetry(function(){return ttsOpenAI(text);},null,cancel);
+        else if(pv==="google")blob=await ttsRetry(function(){return ttsGoogle(text);},null,cancel);
+        else blob=await ttsRetry(function(){return ttsGemini(text);},{id:"tts-gemini",rpm:settings.gmRpm||3},cancel);
+
+        try{await idbPut("tts",key,{blob:blob,ts:Date.now()});}catch(e){}
+        if(activeRoom&&serverReady&&supabaseClient){
+          try{await uploadRoomBlob(key,blob,"tts");}catch(e){console.warn("Upload TTS condiviso fallito",e);}
+        }
+        ttsMem[key]=URL.createObjectURL(blob);
+        return ttsMem[key];
+      }finally{delete ttsInFlight[key];}
+    })();
+    return await ttsInFlight[key];
+  }
+  var elTTS=cloudTTS;
+  function pickSysVoice(lang){var vs=window.speechSynthesis?window.speechSynthesis.getVoices():[],l2=String(lang||"").slice(0,2).toLowerCase();
+    if(settings.sysVoice){var f=vs.filter(function(v){return v.voiceURI===settings.sysVoice;})[0];if(f&&(!l2||String(f.lang).toLowerCase().indexOf(l2)===0))return f;}
+    return vs.filter(function(v){return v.lang&&v.lang.toLowerCase().indexOf(l2)===0;})[0]||null;}
 
   var SILENT="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
   var rd={vol:null,segs:[],i:-1,playing:false,audio:new Audio(),token:0,speed:1,mode:"el",lang:"it-IT",open:false,els:[]};
   var rdModal=$("readerModal"),rdList=$("rdList");
   function readerOpen(){return rd.open;}
-  function useEleven(){return !!settings.elKey;}
-  function updateReaderVoiceLabel(){$("rdVoice").textContent=useEleven()?"Voce: ElevenLabs":"Voce: browser (gratuita)";}
+  function useEleven(){return ttsProv()!=="browser";}
+  var TTS_NAMES={browser:"Voce del browser",eleven:"ElevenLabs",openai:"OpenAI / compatibile",google:"Google Cloud",gemini:"Gemini"};
+  function updateReaderVoiceLabel(){var s=$("rdProv");if(!s.options.length)Object.keys(TTS_NAMES).forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=TTS_NAMES[k];s.appendChild(o);});s.value=ttsProv();}
   function splitSentences(t){var m=t.match(/[^.!?…]+[.!?…]+["»”')\]]*\s*|[^.!?…]+$/g);return m?m:[t];}
   function makeSegments(blocks){var segs=[],MAX=380;
     blocks.forEach(function(b){var cur="";function push(){var s=cur.trim();if(s)segs.push({pg:b.pg,text:s});cur="";}
@@ -2344,15 +2598,15 @@ async function joinRoom(room){
     rd.segs.forEach(function(s,i){if(s.pg!=null&&s.pg!==lastPg){var h=document.createElement("div");h.className="rd-pg";h.dataset.pg=s.pg;h.textContent="Pagina "+s.pg;frag.appendChild(h);lastPg=s.pg;}
       var d=document.createElement("div");d.className="rd-seg";d.dataset.i=i;d.textContent=s.text;frag.appendChild(d);rd.els.push(d);});
     rdList.appendChild(frag);updateReaderUI();}
-  rdList.addEventListener("click",function(e){var d=e.target.closest(".rd-seg");if(!d)return;unlockAudio();playFrom(+d.dataset.i);});
-  function highlightSeg(i,scroll){rd.els.forEach(function(el,k){el.classList.toggle("cur",k===i);el.classList.toggle("done",k<i);});var el=rd.els[i];if(el&&scroll!==false)el.scrollIntoView({block:"center",behavior:"smooth"});}
+  rdList.addEventListener("click",function(e){var d=e.target.closest(".rd-seg");if(!d)return;if(rdSelection())return;unlockAudio();playFrom(+d.dataset.i);});
+  function highlightSeg(i,scroll){try{$("rdNow").textContent=(rd.segs[i]&&rd.segs[i].text)||"";}catch(e){}rd.els.forEach(function(el,k){el.classList.toggle("cur",k===i);el.classList.toggle("done",k<i);});var el=rd.els[i];if(el&&scroll!==false)el.scrollIntoView({block:"center",behavior:"smooth"});}
   function updateReaderUI(){var n=rd.segs.length;$("rdCount").textContent=n?((rd.i>=0?rd.i+1:0)+" / "+n):"";
     $("rdPlay").innerHTML=rd.playing?'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="7 4 20 12 7 20"/></svg>';
-    var rem=0;for(var k=Math.max(0,rd.i);k<n;k++)rem+=rd.segs[k].text.length;$("rdChars").textContent=n&&useEleven()?("Da leggere: "+rem.toLocaleString("it-IT")+" caratteri (consumano crediti ElevenLabs)"):"";}
+    var rem=0;for(var k=Math.max(0,rd.i);k<n;k++)rem+=rd.segs[k].text.length;$("rdChars").textContent=n&&useEleven()?("Da leggere: "+rem.toLocaleString("it-IT")+" caratteri (possono consumare la quota di "+(TTS_NAMES[ttsProv()]||"servizio vocale")+")"):"";}
   function unlockAudio(){try{rd.audio.src=SILENT;var p=rd.audio.play();if(p&&p.catch)p.catch(function(){});}catch(e){}}
   function stopPlayback(){rd.token++;rd.resumeOK=false;try{rd.audio.pause();}catch(e){}try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}}
   async function openReader(vid,startPage){var v=state.volumes.find(function(x){return x.id===vid;});if(!v)return;
-    stopPlayback();rd.playing=false;rd.vol=v;rd.i=-1;rd.segs=[];rd.els=[];rd.lang=v.lang?langBcp(v.lang):(settings.speechLang||"it-IT");
+    stopPlayback();rd.playing=false;rd.vol=v;rd.i=-1;rd.cuts=[];rd.segs=[];rd.els=[];rd.lang=v.lang?langBcp(v.lang):(settings.speechLang||"it-IT");
     $("rdTitle").textContent=v.name||"Lettura";rdList.innerHTML='<div class="hint">Preparo il testo…</div>';rdModal.classList.add("open");rd.open=true;updateReaderVoiceLabel();updateReaderUI();
     var myTok=++rd.token;
     try{var blocks=await volumeBlocks(v,function(i,n){if(rd.token===myTok)rdList.innerHTML='<div class="hint">Estraggo il testo dal PDF… pagina '+i+' di '+n+'</div>';},function(){return !rd.open||rd.vol!==v;});
@@ -2362,9 +2616,9 @@ async function joinRoom(room){
       var si=0;if(startPage){var f=rd.segs.findIndex(function(s){return s.pg!=null&&s.pg>=startPage;});if(f>=0)si=f;}
       rd.i=si;highlightSeg(si);updateReaderUI();
     }catch(e){if(rd.open)rdList.innerHTML='<div class="empty">'+escapeHtml(e.message||"Errore")+'</div>';}}
-  function closeReader(){stopPlayback();rd.playing=false;rd.open=false;rd.vol=null;rdModal.classList.remove("open");updateReaderUI();}
+  function closeReader(){stopPlayback();rd.playing=false;rd.open=false;rd.vol=null;rdModal.classList.remove("open","mini");updateReaderUI();}
   $("rdClose").onclick=closeReader;
-  async function playFrom(i){if(i<0||i>=rd.segs.length){rd.playing=false;updateReaderUI();return;}
+  async function playFrom(i){while(i>=0&&i<rd.segs.length&&rd.segs[i].cut)i++;if(i<0||i>=rd.segs.length){rd.playing=false;updateReaderUI();return;}
     stopPlayback();var tok=rd.token;rd.i=i;rd.playing=true;highlightSeg(i);updateReaderUI();
     var seg=rd.segs[i];
     if(useEleven()){
@@ -2378,19 +2632,57 @@ async function joinRoom(room){
     speakSystem(seg.text,tok,i);}
   async function prefetch(from,count){var tok=rd.token;for(var k=0;k<count;k++){var j=from+k;if(j>=rd.segs.length||tok!==rd.token)return;
       var prev=j>0?rd.segs[j-1].text:null,next=j<rd.segs.length-1?rd.segs[j+1].text:null;try{await elTTS(rd.segs[j].text,prev,next);}catch(e){return;}}}
-  function speakSystem(text,tok,i){if(!window.speechSynthesis){rd.playing=false;updateReaderUI();toast("Il browser non supporta la sintesi vocale. Inserisci una chiave ElevenLabs.");return;}
-    rd.mode="sys";var u=new SpeechSynthesisUtterance(text);u.lang=rd.lang;u.rate=rd.speed;
-    var vs=window.speechSynthesis.getVoices();var pref=vs.filter(function(v){return v.lang&&v.lang.toLowerCase().indexOf(rd.lang.slice(0,2).toLowerCase())===0;});if(pref.length)u.voice=pref[0];
+  function speakSystem(text,tok,i){if(!window.speechSynthesis){rd.playing=false;updateReaderUI();toast("Il browser non supporta la sintesi vocale: scegli un altro servizio vocale.");return;}
+    rd.mode="sys";var u=new SpeechSynthesisUtterance(text);u.lang=rd.lang;u.rate=rd.speed;u.pitch=settings.sysPitch||1;
+    var vv=pickSysVoice(rd.lang);if(vv)u.voice=vv;
     u.onend=function(){if(tok===rd.token&&rd.playing)playFrom(i+1);};u.onerror=function(ev){if(tok===rd.token&&ev.error!=="canceled"&&ev.error!=="interrupted"){rd.playing=false;updateReaderUI();}};
     window.speechSynthesis.speak(u);}
   $("rdPlay").onclick=function(){
     if(rd.playing){rd.playing=false;if(rd.mode==="el"){try{rd.audio.pause();}catch(e){}}else{rd.token++;try{window.speechSynthesis.cancel();}catch(e){}rd.resumeOK=false;}updateReaderUI();return;}
     if(rd.mode==="el"&&rd.resumeOK&&useEleven()&&!rd.audio.ended&&rd.i>=0){rd.playing=true;rd.audio.play().catch(function(){});updateReaderUI();return;}
     unlockAudio();playFrom(rd.i>=0?rd.i:0);};
-  $("rdNext").onclick=function(){unlockAudio();var n=Math.min(rd.segs.length-1,rd.i+1);if(rd.playing)playFrom(n);else{rd.i=n;highlightSeg(n);updateReaderUI();stopPlayback();}};
-  $("rdPrev").onclick=function(){unlockAudio();var n=Math.max(0,rd.i-1);if(rd.playing)playFrom(n);else{rd.i=n;highlightSeg(n);updateReaderUI();stopPlayback();}};
+  $("rdNext").onclick=function(){unlockAudio();var n=Math.min(rd.segs.length-1,rd.i+1);while(n<rd.segs.length-1&&rd.segs[n]&&rd.segs[n].cut)n++;if(rd.playing)playFrom(n);else{rd.i=n;highlightSeg(n);updateReaderUI();stopPlayback();}};
+  $("rdPrev").onclick=function(){unlockAudio();var n=Math.max(0,rd.i-1);while(n>0&&rd.segs[n]&&rd.segs[n].cut)n--;if(rd.playing)playFrom(n);else{rd.i=n;highlightSeg(n);updateReaderUI();stopPlayback();}};
   $("rdSpeed").addEventListener("change",function(){rd.speed=parseFloat($("rdSpeed").value)||1;try{rd.audio.playbackRate=rd.speed;}catch(e){}if(rd.playing&&rd.mode==="sys")playFrom(rd.i);});
   $("rdSettings").onclick=openSettings;
+  /* ===== lettore: crea nodi e taglia mentre ascolti ===== */
+  function rdSelection(){var s=window.getSelection();if(!s||s.isCollapsed||!s.rangeCount)return null;var r=s.getRangeAt(0);if(!rdList.contains(r.commonAncestorContainer))return null;
+    var txt=s.toString().replace(/\s+/g," ").trim();if(!txt)return null;var idx=[];rd.els.forEach(function(el,k){if(r.intersectsNode(el))idx.push(k);});return{text:txt,idx:idx};}
+  function rdTargets(){var sel=rdSelection();if(sel&&sel.idx.length)return{text:sel.text,idx:sel.idx,sel:true};
+    if(rd.i<0||!rd.segs[rd.i])return null;var n=parseInt($("rdNodeN").value,10)||1,idx=[],k=rd.i;
+    while(k>=0&&idx.length<n){if(!rd.segs[k].cut)idx.unshift(k);k--;}
+    return{text:idx.map(function(q){return rd.segs[q].text;}).join(" "),idx:idx,sel:false};}
+  function rdCutSegs(v,idx){var removed=0,before=(v.type!=="pdf"&&typeof v.text==="string")?v.text:null,done=[];
+    idx.forEach(function(k){var s=rd.segs[k];if(!s||s.cut)return;
+      if(before!==null){var words=s.text.split(/\s+/).filter(Boolean).map(function(w){return w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");});
+        if(words.length){var re=new RegExp(words.join("\\s+"));if(re.test(v.text)){v.text=v.text.replace(re,"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n");removed++;}}}
+      s.cut=true;done.push(k);if(rd.els[k])rd.els[k].classList.add("cut");});
+    if(!done.length)return;
+    rd.cuts=rd.cuts||[];rd.cuts.push({v:v,idx:done,text:before});
+    if(before!==null){save();renderCollection();}
+    if(rd.playing&&done.indexOf(rd.i)>=0)playFrom(rd.i+1);
+    return removed;}
+  function rdCreateNode(cut){var v=rd.vol;if(!v)return;var t=rdTargets();if(!t||!t.text){toast("Niente da usare: avvia la lettura o seleziona del testo.");return;}
+    var first=rd.segs[t.idx[0]]||rd.segs[rd.i],pg=first?first.pg:null,vn=v.name||"Volume";
+    var src=(v.type==="pdf"&&pg!=null)?{type:"pdf",volumeId:v.id,volumeName:vn,page:pg,phrase:t.text}:{type:"text",volumeId:v.id,volumeName:vn,phrase:t.text};
+    var k=rd.nodeN=(rd.nodeN||0)+1,c=viewCenter();k=(k-1)%6;
+    addNode({x:Math.round(c.x-115+k*36),y:Math.round(c.y-90+k*36),title:vn+(pg!=null?" — p."+pg:""),body:escapeHtml(t.text),source:src});
+    if(cut){var rm=rdCutSegs(v,t.idx);toast(v.type==="pdf"?"Nodo creato. Nel PDF la frase non si cancella: viene solo saltata nella lettura.":(rm?"Tagliato dal volume e aggiunto alla mappa.":"Nodo creato, ma non ho ritrovato il testo da togliere dal volume."));}
+    else toast("Nodo aggiunto alla mappa");
+    try{window.getSelection().removeAllRanges();}catch(e){}}
+  function rdUndoCut(){var c=rd.cuts&&rd.cuts.pop();if(!c){toast("Nessun taglio da annullare.");return;}
+    c.idx.forEach(function(k){if(rd.segs[k])rd.segs[k].cut=false;if(rd.els[k])rd.els[k].classList.remove("cut");});
+    if(c.text!==null&&c.v.type!=="pdf"){c.v.text=c.text;save();renderCollection();}toast("Taglio annullato (il nodo creato resta nella mappa).");}
+  $("rdNode").onclick=function(){rdCreateNode(false);};
+  $("rdCut").onclick=function(){rdCreateNode(true);};
+  $("rdUndoCut").onclick=rdUndoCut;
+  $("rdMini").onclick=function(){var m=!rdModal.classList.contains("mini");rdModal.classList.toggle("mini",m);$("rdMini").textContent=m?"▢":"▁";$("rdMini").title=m?"Riapri il lettore completo":"Riduci a barra: ascolti mentre lavori sulla mappa";if(!m&&rd.i>=0)highlightSeg(rd.i);};
+  $("rdProv").onchange=function(){settings.ttsProv=this.value;saveSettings();updateReaderUI();if(rd.playing)playFrom(rd.i);};
+  document.addEventListener("keydown",function(e){if(!rd.open||e.ctrlKey||e.metaKey||e.altKey)return;var t=e.target;if(typingTarget(t)||(t&&(t.tagName==="SELECT"||t.tagName==="BUTTON")))return;
+    var k=e.key.toLowerCase();
+    if(k==="n"){e.preventDefault();rdCreateNode(false);}else if(k==="x"){e.preventDefault();rdCreateNode(true);}else if(k==="u"){e.preventDefault();rdUndoCut();}
+    else if(k===" "){e.preventDefault();$("rdPlay").click();}else if(k==="arrowright"){e.preventDefault();$("rdNext").click();}else if(k==="arrowleft"){e.preventDefault();$("rdPrev").click();}});
+
   window.addEventListener("beforeunload",function(){try{window.speechSynthesis&&window.speechSynthesis.cancel();}catch(e){}});
   $("pdfRead").onclick=function(){if(!pdfState.doc||!pdfState.volumeId)return;var vid=pdfState.volumeId,pg=curPdfPage();closePdf();openReader(vid,pg);};
 
