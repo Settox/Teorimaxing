@@ -372,10 +372,6 @@
     <span class="divider"></span>
     <button class="ctl ghost" id="exportBtn" title="Esporta JSON"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Esporta</button>
     <button class="ctl ghost" id="importBtn" title="Importa JSON"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importa</button>
-    <!-- ==== GDRIVE: pulsanti backup/restore ==== -->
-    <button class="ctl ghost" id="gdriveExportBtn" title="Salva un backup sul tuo Google Drive"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg> Salva su Drive</button>
-    <button class="ctl ghost" id="gdriveImportBtn" title="Ripristina l'ultimo backup dal Drive"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V2M2 12h20"/></svg> Ripristina da Drive</button>
-    <!-- ==== FINE GDRIVE ==== -->
     <button class="ctl ghost" id="newBtn" title="Nuovo progetto"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg> Nuovo</button>
     <button class="ctl ghost" id="helpBtn" title="Aiuto"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
   </div>
@@ -492,8 +488,7 @@
       <li><b>Lucchetto</b> su nodi, volumi e cartelle: finch&eacute; &egrave; chiuso non si possono eliminare.</li>
       <li><b>Cerca</b>: la barra in alto cerca nei nodi; quella in Raccolta cerca una parola nei testi e nei PDF dei volumi.</li>
       <li><b>Raccolta</b>: il pulsante a freccia in alto a sinistra sul tavolo la nasconde o la mostra.</li>
-      <li><b>Salva su Drive</b> / <b>Ripristina da Drive</b>: crea un backup completo su Google Drive e ripristina l'ultimo backup. Il backup è condivisibile: chi ha il link può ripristinarlo senza login.</li>
-      <li><b>Esporta/Importa</b>: scarica o ricarica tutto (grafo, volumi, immagini, video, PDF) come file locale.</li>
+      <li><b>Esporta/Importa</b>: scarica o ricarica tutto (grafo, volumi, immagini, video, PDF).</li>
     </ul>
     <button class="ctl" id="helpClose">Chiudi</button>
   </div>
@@ -502,10 +497,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./supabase-config.js"></script>
-<!-- ==== GDRIVE: config + Google Identity Services ==== -->
-<script src="./gdrive-config.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<!-- ==== FINE GDRIVE ==== -->
 <script type="module">
 const TRYSTERO_SOURCES = [
   'https://esm.sh/trystero@0.21/torrent',
@@ -646,7 +637,6 @@ async function loadTrystero(){
       /* una sola serializzazione completa, solo quando serve davvero al server */
       var clean=JSON.parse(JSON.stringify(state));
       delete clean.current;
-      delete clean._gdrive; /* il riferimento al backup su Drive non va sul server */
       var r=await supabaseClient.from("spazio_teorie_projects").upsert({server_id:roomAtStart,name:roomAtStart,state:clean,updated_at:new Date().toISOString()},{onConflict:"server_id"});
       if(r.error)throw r.error;
       if(activeRoom===roomAtStart)statusText.textContent="Salvato sul server · "+roomAtStart;
@@ -1158,7 +1148,7 @@ function getSelectedPdf(){var sel=window.getSelection();if(!sel||sel.rangeCount=
     for(key in lastSnap){if(!cur[key]){var l2=lastSnap[key];tomb[key]=1;ops.push({e:l2.e,id:l2.id,pid:l2.pid,del:1,t:nextT()});}}
     lastSnap=toStrings(cur);
     if(ops.length){try{collab.send.ops(ops);}catch(e){console.warn(e);}}}
-  function packState(){var st=JSON.parse(JSON.stringify(state));delete st.current;(st.folders||[]).forEach(function(f){delete f.expanded;});delete st._gdrive;return {from:myId(),state:st};}
+  function packState(){var st=JSON.parse(JSON.stringify(state));delete st.current;(st.folders||[]).forEach(function(f){delete f.expanded;});return {from:myId(),state:st};}
   function collabSendState(target){if(!collab.active||!collab.send.state)return;try{collab.send.state(packState(),target||undefined);}catch(e){console.warn(e);}}
   function updatePeers(){var el=$("peers");if(!collab.active){el.textContent="Non connesso";return;}
     el.innerHTML="";
@@ -1463,164 +1453,12 @@ async function joinRoom(room){
   copyLinkBtn.onclick=function(){var r=collab.room||$("roomInput").value.trim();if(!r){toast("Scrivi prima il nome del server.");return;}var link=location.origin+location.pathname+"?room="+encodeURIComponent(r);copyText(link).then(function(){toast("Link copiato");});};
   $("roomLeave").parentNode.appendChild(copyLinkBtn);
 
-  /* ===== GDRIVE: backup/ripristino su Google Drive ===== */
-  var gdriveToken=null, gdriveTokenExp=0;
-
-  function getGDriveToken(){
-    return new Promise(function(resolve,reject){
-      if(gdriveToken&&Date.now()<gdriveTokenExp-60000)return resolve(gdriveToken);
-      if(!window.google||!window.google.accounts||!window.GDRIVE_CONFIG)return reject(new Error("Google Identity Services non caricato"));
-      var client=google.accounts.oauth2.initTokenClient({
-        client_id:window.GDRIVE_CONFIG.clientId,
-        scope:window.GDRIVE_CONFIG.scope,
-        callback:function(resp){
-          if(resp.error)return reject(new Error(resp.error));
-          gdriveToken=resp.access_token;
-          gdriveTokenExp=Date.now()+(resp.expires_in*1000);
-          resolve(gdriveToken);
-        }
-      });
-      client.requestAccessToken({prompt:gdriveToken?"":"consent"});
-    });
-  }
-
-  async function ensureGDriveFolder(token){
-    var name=window.GDRIVE_CONFIG.folderName;
-    var q=encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='"+name.replace(/'/g,"\\'")+"' and trashed=false");
-    var r=await fetch("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)",{headers:{Authorization:"Bearer "+token}});
-    var data=await r.json();
-    if(data.files&&data.files.length)return data.files[0].id;
-    var cr=await fetch("https://www.googleapis.com/drive/v3/files",{
-      method:"POST",
-      headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
-      body:JSON.stringify({name:name,mimeType:"application/vnd.google-apps.folder"})
-    });
-    var created=await cr.json();
-    if(!created.id)throw new Error("Impossibile creare la cartella su Drive");
-    return created.id;
-  }
-
-  async function exportToGDrive(){
-    try{
-      statusText.textContent="Preparo il backup…";
-      var token=await getGDriveToken();
-      var folderId=await ensureGDriveFolder(token);
-      var media={},pdfs={};
-      var ids=collectMediaIds();
-      for(var i=0;i<ids.length;i++){
-        var rec=await idbGet("blobs",ids[i]);
-        if(rec&&rec.blob)media[ids[i]]={base64:await blobToBase64(rec.blob),type:rec.type};
-      }
-      for(var j=0;j<state.volumes.length;j++){
-        var v=state.volumes[j];
-        if(v.type==="pdf"){
-          var ab=await idbGet("pdfs",v.id);
-          if(ab)pdfs[v.id]=await blobToBase64(new Blob([ab],{type:"application/pdf"}));
-        }
-      }
-      var backup={app:"spazio-teorie",version:3,exportedAt:new Date().toISOString(),state:state,media:media,pdfs:pdfs};
-      var json=JSON.stringify(backup);
-      var stamp=new Date().toISOString().replace(/[:.]/g,"-");
-      var fileName="spazio-teorie-backup-"+stamp+".json";
-      statusText.textContent="Carico su Drive…";
-
-      var initRes=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink,createdTime",{
-        method:"POST",
-        headers:{
-          Authorization:"Bearer "+token,
-          "Content-Type":"application/json; charset=UTF-8",
-          "X-Upload-Content-Type":"application/json",
-          "X-Upload-Content-Length":String(json.length)
-        },
-        body:JSON.stringify({name:fileName,parents:[folderId],mimeType:"application/json"})
-      });
-      if(!initRes.ok)throw new Error("Init upload fallito: "+initRes.status);
-      var uploadUrl=initRes.headers.get("Location");
-      if(!uploadUrl)throw new Error("Nessun URL di upload restituito da Drive");
-      var put=await fetch(uploadUrl,{
-        method:"PUT",
-        headers:{"Content-Type":"application/json"},
-        body:json
-      });
-      if(!put.ok)throw new Error("Upload fallito: "+put.status);
-      var uploaded=await put.json();
-
-      await fetch("https://www.googleapis.com/drive/v3/files/"+uploaded.id+"/permissions",{
-        method:"POST",
-        headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
-        body:JSON.stringify({role:"reader",type:"anyone"})
-      });
-
-      state._gdrive={fileId:uploaded.id,fileName:uploaded.name,link:uploaded.webViewLink,date:uploaded.createdTime};
-      save();
-      toast("Backup su Drive completato: "+uploaded.name);
-      statusText.textContent="Backup Drive · "+uploaded.name;
-    }catch(e){
-      console.error("Errore backup Drive:",e);
-      toast("Errore backup su Drive: "+e.message);
-      statusText.textContent="Errore backup Drive";
-    }
-  }
-
-  async function importFromGDrive(fileId){
-    try{
-      fileId=fileId||(state._gdrive&&state._gdrive.fileId);
-      if(!fileId){
-        var manual=prompt("Nessun backup recente trovato. Incolla l'ID o il link del file di backup su Drive:","");
-        if(!manual)return;
-        var m=manual.match(/[-_\w]{20,}/);
-        fileId=m?m[0]:manual.trim();
-      }
-      statusText.textContent="Scarico da Drive…";
-      var r=await fetch("https://www.googleapis.com/drive/v3/files/"+fileId+"?alt=media");
-      if(!r.ok)throw new Error("Download fallito: "+r.status);
-      var backup=await r.json();
-      if(!backup||!backup.state)throw new Error("File di backup non valido");
-      var s=backup.state;
-      if(!Array.isArray(s.folders))s.folders=[];
-      if(!Array.isArray(s.volumes))s.volumes=[];
-      s.pages.forEach(function(p){if(!Array.isArray(p.nodes))p.nodes=[];if(!Array.isArray(p.connections))p.connections=[];});
-      if(typeof s.current!=="number")s.current=0;
-
-      clearMediaUrls();
-      if(backup.media){
-        for(var id in backup.media){
-          var mm=backup.media[id];
-          var blob=base64ToBlob(mm.base64);
-          await idbPut("blobs",id,{blob:blob,type:mm.type||blob.type});
-          mediaUrls[id]=URL.createObjectURL(blob);
-        }
-      }
-      if(backup.pdfs){
-        for(var pid in backup.pdfs){
-          var pblob=base64ToBlob(backup.pdfs[pid]);
-          var pab=await pblob.arrayBuffer();
-          await idbPut("pdfs",pid,pab);
-        }
-      }
-      state=s;
-      selectedNode=null;selectedConn=null;
-      render();save();
-      toast("Backup ripristinato da Drive ("+(backup.exportedAt||"data sconosciuta")+")");
-      statusText.textContent="Ripristinato da Drive";
-    }catch(e){
-      console.error("Errore restore Drive:",e);
-      toast("Errore import da Drive: "+e.message);
-      statusText.textContent="Errore import Drive";
-    }
-  }
-  /* ==== FINE GDRIVE ==== */
-
   /* ===== Import / export / reset ===== */
   function downloadJson(obj,name){var blob=new Blob([JSON.stringify(obj)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},4000);}
   $("exportBtn").onclick=async function(){statusText.textContent="Esportazione…";try{var media={},pdfs={};var ids=collectMediaIds();for(var i=0;i<ids.length;i++){var rec=await idbGet("blobs",ids[i]);if(rec&&rec.blob)media[ids[i]]={base64:await blobToBase64(rec.blob),type:rec.type};}
     for(var j=0;j<state.volumes.length;j++){var v=state.volumes[j];if(v.type==="pdf"){var ab=await idbGet("pdfs",v.id);if(ab)pdfs[v.id]=await blobToBase64(new Blob([ab],{type:"application/pdf"}));}}
     downloadJson({app:"spazio-teorie",version:3,state:state,media:media,pdfs:pdfs},"spazio-teorie.json");statusText.textContent="Esportato";}catch(e){statusText.textContent="Errore esportazione";}};
   $("importBtn").onclick=function(){$("importFile").click();};
-  /* ==== GDRIVE: collega i pulsanti backup/restore ==== */
-  $("gdriveExportBtn").onclick=function(){exportToGDrive();};
-  $("gdriveImportBtn").onclick=function(){importFromGDrive();};
-  /* ==== FINE GDRIVE ==== */
   $("importFile").addEventListener("change",function(){var f=$("importFile").files[0];if(!f)return;var reader=new FileReader();reader.onload=async function(){try{var obj=JSON.parse(reader.result);var s=null,mediaMap=null,pdfsMap=null;
     if(obj&&obj.app==="spazio-teorie"&&obj.state){s=obj.state;mediaMap=obj.media;pdfsMap=obj.pdfs;}else if(obj&&Array.isArray(obj.pages)&&obj.pages.length){s=obj;}
     if(!s)throw new Error("bad");if(!Array.isArray(s.folders))s.folders=[];if(!Array.isArray(s.volumes))s.volumes=[];s.pages.forEach(function(p){if(!Array.isArray(p.nodes))p.nodes=[];if(!Array.isArray(p.connections))p.connections=[];});if(typeof s.current!=="number")s.current=0;
